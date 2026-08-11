@@ -27,4 +27,4 @@ sources:
   - https://github.com/krateoplatformops/oasgen-provider
   - https://github.com/krateoplatformops/rest-dynamic-controller
 maintainers:
-  - name: braghettos
+  - name: krateo

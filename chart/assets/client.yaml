@@ -38,7 +38,7 @@ components:
             uses elsewhere. Take it from the KeycloakAuthenticationFlow CR's status.id,
             which that RestDefinition already projects via additionalStatusFields. Having
             rest-dynamic-controller resolve alias -> id instead was explored and deferred:
-            see braghettos/krateo-rest-dynamic-controller#30.
+            see krateo-blueprints/krateo-rest-dynamic-controller#30.
         name:
           type: string
         description:
