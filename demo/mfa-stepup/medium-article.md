@@ -166,7 +166,7 @@ No operator, no webhook server, no second factor baked into Kubernetes. Just an 
 
 ---
 
-*The full, runnable prototype — certs, apiserver auth config, the Keycloak LoA flow scripts, the CRDs + RBAC + policy, and a scripted step-up token minter — is in the [demo/mfa-stepup](https://github.com/braghettos/krateo-keycloak-operator-kog/tree/main/demo/mfa-stepup) folder. Built with [Keycloak](https://www.keycloak.org/), Kubernetes [Structured Authentication](https://kubernetes.io/docs/reference/access-authn-authz/authentication/) + [ValidatingAdmissionPolicy](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/), and [Krateo PlatformOps](https://krateo.io).*
+*The full, runnable prototype — certs, apiserver auth config, the Keycloak LoA flow scripts, the CRDs + RBAC + policy, and a scripted step-up token minter — is in the [demo/mfa-stepup](https://github.com/krateo-blueprints/krateo-keycloak-operator-kog/tree/main/demo/mfa-stepup) folder. Built with [Keycloak](https://www.keycloak.org/), Kubernetes [Structured Authentication](https://kubernetes.io/docs/reference/access-authn-authz/authentication/) + [ValidatingAdmissionPolicy](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/), and [Krateo PlatformOps](https://krateo.io).*
 
 <!-- ─────────────────────────────────────────────────────────────────────────
 PUBLISHING CHECKLIST (editor's notes — delete before/after pasting into Medium)

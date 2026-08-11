@@ -78,7 +78,7 @@ Two things the live run corrected vs. the first draft:
   must also carry `identityProviderAlias` (else 409).
 - The live chain assigns the OpenStack project via **Keystone-side auto-provisioning**
   (a `projects` rule in the `IdentityMapping`, managed by the
-  [Keystone KOG](https://github.com/braghettos/openstack-keystone-operator-kog)), so the
+  [Keystone KOG](https://github.com/krateo-blueprints/openstack-keystone-operator-kog)), so the
   federated user is dropped straight into `demo` with the `member` role — the Keycloak
   `os-project-demo` group is the authorization *source*, the Keystone mapping is the
   *sink*. Both sides are now CRs.
