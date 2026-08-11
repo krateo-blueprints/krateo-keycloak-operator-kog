@@ -1,6 +1,6 @@
 # LINK 3 — Keystone OIDC federation (mod_auth_openidc).
 # Helm VALUES overrides for the OpenStack-Helm Keystone chart used by the
-# `openstack-as-a-service` blueprint (braghettos/krateo-openstack-blueprint).
+# `openstack-as-a-service` blueprint (krateo-blueprints/krateo-openstack-blueprint).
 # Feed these into the keystone Composition's values.
 #
 # Effect: Keystone's Apache becomes an OIDC Relying Party of the `krateo` realm

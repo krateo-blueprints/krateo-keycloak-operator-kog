@@ -38,7 +38,7 @@ The Keycloak `krateo` realm + the `keystone`/`krateo-authn` clients + the
 You also need, deployed and reachable over **consistent HTTPS hostnames**:
 
 - a running **Keycloak** (the `krateo-keycloak-blueprint`),
-- a running **OpenStack** (`braghettos/krateo-openstack-blueprint` — Keystone + Horizon),
+- a running **OpenStack** (`krateo-blueprints/krateo-openstack-blueprint` — Keystone + Horizon),
 - a running **Krateo** portal (frontend + `authn` + snowplow widgets).
 
 ## Steps

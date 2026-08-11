@@ -19,7 +19,7 @@ GitHub  ──▶  Keycloak (krateo realm)  ──▶  Keystone (OIDC federation
 ```
 
 The chain was validated end-to-end on GKE cluster `osh-sso`
-(`europe-west1-b`, 1× `e2-standard-16`). Federated user `braghettos` (a GitHub
+(`europe-west1-b`, 1× `e2-standard-16`). Federated user `krateo` (a GitHub
 account) logs in and is auto-provisioned into the `demo` OpenStack project with the
 `member` role.
 
@@ -338,7 +338,7 @@ Verify the federation result from the CLI:
 # The shadow user exists in the keycloak domain and holds `member` on the KOG demo project
 openstack role assignment list --names --user <user> --user-domain keycloak
 # +--------+---------------------+... 
-# | member | braghettos@keycloak | demo@keycloak ...
+# | member | krateo@keycloak | demo@keycloak ...
 ```
 
 ---
