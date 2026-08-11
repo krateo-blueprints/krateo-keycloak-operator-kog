@@ -1,0 +1,28 @@
+# keycloak-config-kog — LLM doc index
+# One line per file. Read files at the tag that matches the running build:
+# the chart version is CompositionDefinition.spec.chart.version, which is also the
+# published OCI chart tag. The blueprint exposes Keycloak Admin API resources as
+# native Kubernetes CRs via the KOG toolchain (oasgen-provider + rest-dynamic-controller).
+docs/index.md: the map — what the blueprint is + links to the whole bundle and the repo layout
+docs/overview.md: KOG mechanics, resources exposed, the two design decisions, the delegated authentication-execution surface
+docs/usage.md: install via Helm or as a Krateo Composition, wire the ESO admin token, apply the sample CRs, verify reconcile
+docs/configuration.md: the whole values surface — keycloak target, auth/ESO, restDefinitions, snowplow delegation, resourceGroup/verbose
+docs/api.md: the CompositionDefinition CRD, the KeycloakConfigKog Composition kind, and the generated Keycloak resource kinds
+docs/examples.md: index of the runnable examples
+docs/release.md: how a release ships — a SemVer tag publishes the chart to GHCR OCI
+docs/log.md: curated history and validation milestones
+docs/ARCHITECTURE.md: the full two-deliverable SSO design and the authentication-flow delegation model
+docs/images/README.md: the live-GKE walkthrough screenshots and what each captures
+examples/sso-realm/README.md: an end-to-end SSO realm expressed entirely as keycloak-config-kog CRs
+examples/composition.yaml: the Krateo Composition form of the install (one KeycloakConfigKog CR)
+# Source (read at the same tag; the docs above are derived from these):
+chart/values.yaml: every value with its rationale in comments
+chart/values.schema.json: the typed values schema core-provider derives the Composition CRD from
+chart/templates/rd-client.yaml: an example RestDefinition (findby-addressed UUID resource)
+chart/templates/rd-realm.yaml: an example RestDefinition (direct natural-key resource)
+chart/templates/rd-authenticationexecution.yaml: the delegated execution RestDefinition (Snowplow RESTActions)
+chart/templates/externalsecret.yaml: the ESO Webhook + ExternalSecret admin-token wiring
+compositiondefinition.yaml: this blueprint's own registration (spec.chart.version = the published chart)
+samples/00-configurations.yaml: the per-Kind <Kind>Configuration CRs pointing at the token Secret
+samples/10-sso-realm.yaml: the end-to-end SSO realm sample
+samples/20-authentication-mfa.yaml: the OTP/WebAuthn realm + step-up execution ladder + acr.loa.map client

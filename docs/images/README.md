@@ -1,3 +1,12 @@
+---
+type: Architecture
+title: keycloak-config-kog — walkthrough screenshots
+description: Reference for the live-GKE SSO walkthrough screenshots (GitHub → Keycloak → Keystone → Horizon), what each capture shows, and why the GitHub consent screen is intentionally omitted.
+resource: oci://ghcr.io/krateo-blueprints/charts/keycloak-config-kog
+tags: [keycloak, screenshots, sso, horizon]
+timestamp: 2026-08-11T00:00:00Z
+---
+
 # Screenshots for the live GKE walkthrough
 
 Captured live on GKE cluster `osh-sso` while validating the
