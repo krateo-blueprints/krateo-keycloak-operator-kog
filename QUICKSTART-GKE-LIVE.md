@@ -196,14 +196,14 @@ are immutable).
 
 This is the part that used to be hand-run with `openstack federation ...` CLI. It is
 now three CRs reconciled by the **Keystone KOG**
-([`openstack-keystone-operator-kog`](https://github.com/braghettos/openstack-keystone-operator-kog)):
+([`openstack-keystone-operator-kog`](https://github.com/krateo-blueprints/openstack-keystone-operator-kog)):
 
 - **`IdentityFederationProvider`** — the trusted IdP (Keycloak's realm issuer).
 - **`IdentityMapping`** — the OIDC-claims → Keystone-user/project rules.
 - **`IdentityFederationProtocol`** — binds the `openid` protocol on the IdP to the mapping.
 
 Plus the target domain and project, also KOG-managed (`IdentityDomain`,
-`IdentityProject`). See [`chart/samples/federation.yaml`](https://github.com/braghettos/openstack-keystone-operator-kog/blob/main/chart/samples/federation.yaml).
+`IdentityProject`). See [`chart/samples/federation.yaml`](https://github.com/krateo-blueprints/openstack-keystone-operator-kog/blob/main/chart/samples/federation.yaml).
 
 ```yaml
 apiVersion: identity.openstack.krateo.io/v1alpha1
