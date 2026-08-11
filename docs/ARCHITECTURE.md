@@ -1,3 +1,12 @@
+---
+type: Architecture
+title: keycloak-config-kog — architecture
+description: The full design of the two-deliverable Keycloak/Krateo/OpenStack Horizon SSO story — lifecycle blueprint vs configuration KOG, the KOG mechanics decisions, and the Snowplow-delegated authentication-flow/execution model for MFA and ACR.
+resource: oci://ghcr.io/krateo-blueprints/charts/keycloak-config-kog
+tags: [keycloak, architecture, sso, openstack, mfa, acr]
+timestamp: 2026-08-11T00:00:00Z
+---
+
 # Keycloak for Krateo PlatformOps + OpenStack Horizon SSO
 
 Two complementary Krateo deliverables that bring Keycloak into the platform so

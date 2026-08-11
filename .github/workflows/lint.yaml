@@ -1,0 +1,14 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  lint-docs:
+    uses: krateo-platformops/.github/.github/workflows/lint-docs.yaml@main
