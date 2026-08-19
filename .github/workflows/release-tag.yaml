@@ -23,7 +23,10 @@ on:
     tags: ["[0-9]+.[0-9]+.[0-9]+"]
 
 permissions:
-  contents: read
+  # contents: write -- the stamped CompositionDefinition is attached to the release;
+  # it is applied by hand and is not inside the packaged chart, so a copy that only
+  # exists in the runner helps nobody.
+  contents: write
   packages: write
 
 jobs:
@@ -90,6 +93,18 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" \
             | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
 
+      - name: Stamp every CompositionDefinition
+        run: |
+          set -euo pipefail
+          # The CD pins the version of THIS chart and does not live next to Chart.yaml, so the
+          # per-chart stamping below never saw it. Left by hand it registered 0.1.0, which was
+          # never published; core-provider accepts a stale registration silently.
+          found=0
+          while IFS= read -r -d '' cd; do
+            sed -i "s/CHART_VERSION/${VERSION}/g" "$cd"; echo "stamped $cd -> ${VERSION}"; found=$((found+1))
+          done < <(find . -type f -name compositiondefinition.yaml -not -path '*/charts/*' -print0)
+          echo "CompositionDefinitions stamped: $found"
+
       - name: Package and push
         run: |
           set -euo pipefail
@@ -134,3 +149,23 @@ jobs:
             fi
           done < /tmp/charts.txt
           exit 0   # warn, don't block: visibility is a one-time manual step per package
+
+      - name: Publish the stamped CompositionDefinitions on the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Runs AFTER the charts are pushed: the chart is the primary artifact and an asset
+          # problem must never block it. Staged copies -- a root-level CD cp'd onto itself is
+          # an error, not a no-op (both lessons from krateo-selfservice-blueprint 0.2.26).
+          stage="$(mktemp -d)"; assets=()
+          while IFS= read -r -d '' cd; do
+            d="$(dirname "$cd")"
+            if [ "$d" = "." ]; then out="compositiondefinition.yaml"; else out="compositiondefinition-$(basename "$d").yaml"; fi
+            cp "$cd" "$stage/$out"; assets+=("$stage/$out")
+          done < <(find . -type f -name compositiondefinition.yaml -not -path '*/charts/*' -print0)
+          [ ${#assets[@]} -eq 0 ] && { echo "no CompositionDefinition to publish"; exit 0; }
+          gh release view "${VERSION}" >/dev/null 2>&1 \
+            || gh release create "${VERSION}" --title "${VERSION}" --notes "Apply the attached CompositionDefinition to register this version."
+          gh release upload "${VERSION}" "${assets[@]}" --clobber
+          echo "attached: ${assets[*]}"
