@@ -15,6 +15,10 @@
 # Conservative by design: when the diff cannot be attributed confidently — no previous tag,
 # or a change outside helm/ that any chart might depend on — it publishes EVERYTHING.
 # Over-publishing is noise; under-publishing silently ships a stale chart.
+#
+# The same bytes are then published to the Marketplace index by the organisation's one publisher
+# (krateo-blueprints/charts PUBLISHING.md). The chart carries values.schema.json and this repo's
+# CompositionDefinition, so it is a blueprint and goes to the `blueprints` channel.
 
 name: release-tag
 
@@ -36,6 +40,20 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0          # need history to diff against the previous tag
+
+      # The Marketplace installs what the helm index at krateo-blueprints/charts lists, not what
+      # GHCR holds, and the publish-index job below needs this secret to get there. Refuse here,
+      # before anything is pushed, so a missing token fails the release instead of leaving GHCR
+      # and the index at different versions (PUBLISHING.md rules 1 and 7).
+      - name: The Marketplace index token must be present
+        env:
+          CHARTS_PUBLISH_TOKEN: ${{ secrets.CHARTS_PUBLISH_TOKEN }}
+        run: |
+          if [ -z "${CHARTS_PUBLISH_TOKEN}" ]; then
+            echo "::error::secret CHARTS_PUBLISH_TOKEN is not set, so this release could not reach the"
+            echo "::error::Marketplace index and the Marketplace would keep installing an old version."
+            exit 1
+          fi
 
       - uses: azure/setup-helm@v4
 
@@ -106,8 +124,19 @@ jobs:
           echo "CompositionDefinitions stamped: $found"
 
       - name: Package and push
+        env:
+          # The blueprint chart: it has values.schema.json, and the repo-root
+          # compositiondefinition.yaml installs it (PUBLISHING.md rule 2). It is this repo's only
+          # chart, so the selection above always includes it.
+          BLUEPRINT_DIR: helm/keycloak-config-kog
         run: |
           set -euo pipefail
+          # A blueprint archive must describe itself (PUBLISHING.md rule 3): ship the stamped
+          # CompositionDefinition inside the chart, at the chart root where helm packages it but
+          # never renders it. Copied, not moved: the root file stays the source for the release
+          # asset below, and it was stamped by the step above, so both carry the tag version.
+          cp ./compositiondefinition.yaml "${BLUEPRINT_DIR}/compositiondefinition.yaml"
+          mkdir -p charts-dist
           while read -r dir; do
             [ -z "$dir" ] && continue
             cf="$dir/Chart.yaml"
@@ -121,9 +150,51 @@ jobs:
             sed -i "s/CHART_VERSION/${VERSION}/g" "$cf"
             helm dependency build "$dir" 2>/dev/null || helm dependency update "$dir" 2>/dev/null || true
             helm package "$dir" --version "${VERSION}" --destination /tmp/pkg
-            helm push "/tmp/pkg/${name}-${VERSION}.tgz" "${OCI_REPO}"
+            tgz="/tmp/pkg/${name}-${VERSION}.tgz"
+            # Check the ARCHIVE, before GHCR holds this version, against what the Marketplace
+            # index's publisher will refuse. helm package exits 0 whether or not the copy above
+            # landed in the chart, so a copy that stopped working would otherwise surface only
+            # after the push, as a refusal somewhere else. Read the listing once and match with
+            # a here-string: `tar | grep -q` under pipefail fails on SIGPIPE when grep matches.
+            if [ "$dir" = "$BLUEPRINT_DIR" ]; then
+              members="$(tar tzf "$tgz")"
+              for want in values.schema.json compositiondefinition.yaml; do
+                if ! grep -qxF "${name}/${want}" <<< "$members"; then
+                  echo "::error::${tgz} lacks ${name}/${want}; refusing to push"
+                  exit 1
+                fi
+              done
+              cd_yaml="$(tar -xzOf "$tgz" "${name}/compositiondefinition.yaml")"
+              cd_url="$(yq -r 'select(.kind == "CompositionDefinition") | .spec.chart.url' <<< "$cd_yaml")"
+              cd_ver="$(yq -r 'select(.kind == "CompositionDefinition") | .spec.chart.version' <<< "$cd_yaml")"
+              if [ "$cd_url" != "oci://ghcr.io/krateo-blueprints/charts/${name}" ] || [ "$cd_ver" != "$VERSION" ]; then
+                echo "::error::${tgz}: its CompositionDefinition installs '${cd_url}' '${cd_ver}', not oci://ghcr.io/krateo-blueprints/charts/${name} ${VERSION}"
+                exit 1
+              fi
+              chart_yaml="$(tar -xzOf "$tgz" "${name}/Chart.yaml")"
+              case "$(yq -r '.icon // ""' <<< "$chart_yaml")" in
+                https://*) : ;;
+                *) echo "::error::${tgz}: Chart.yaml icon must be an absolute https URL"; exit 1 ;;
+              esac
+              if [ "$(yq -r '(.keywords // []) | length' <<< "$chart_yaml")" -eq 0 ]; then
+                echo "::error::${tgz}: Chart.yaml needs keywords, the Marketplace's tags"
+                exit 1
+              fi
+            fi
+            helm push "$tgz" "${OCI_REPO}"
             echo "pushed ${name}:${VERSION}"
+            # The same bytes that went to GHCR, for the index.
+            if [ "$dir" = "$BLUEPRINT_DIR" ]; then
+              cp "$tgz" charts-dist/
+            fi
           done < /tmp/charts.txt
+
+      - name: Hand the blueprint tarball to the index job
+        uses: actions/upload-artifact@v4
+        with:
+          name: charts-dist
+          path: charts-dist/*.tgz
+          if-no-files-found: error
 
       - name: Verify anonymous pullability
         run: |
@@ -158,14 +229,31 @@ jobs:
           # Runs AFTER the charts are pushed: the chart is the primary artifact and an asset
           # problem must never block it. Staged copies -- a root-level CD cp'd onto itself is
           # an error, not a no-op (both lessons from krateo-selfservice-blueprint 0.2.26).
+          # The chart's own compositiondefinition.yaml is the packaging step's copy of the root
+          # file, not a second CompositionDefinition, so it is not attached again.
           stage="$(mktemp -d)"; assets=()
           while IFS= read -r -d '' cd; do
             d="$(dirname "$cd")"
             if [ "$d" = "." ]; then out="compositiondefinition.yaml"; else out="compositiondefinition-$(basename "$d").yaml"; fi
             cp "$cd" "$stage/$out"; assets+=("$stage/$out")
-          done < <(find . -type f -name compositiondefinition.yaml -not -path '*/charts/*' -print0)
+          done < <(find . -type f -name compositiondefinition.yaml -not -path '*/charts/*' \
+                        -not -path './helm/keycloak-config-kog/compositiondefinition.yaml' -print0)
           [ ${#assets[@]} -eq 0 ] && { echo "no CompositionDefinition to publish"; exit 0; }
           gh release view "${VERSION}" >/dev/null 2>&1 \
             || gh release create "${VERSION}" --title "${VERSION}" --notes "Apply the attached CompositionDefinition to register this version."
           gh release upload "${VERSION}" "${assets[@]}" --clobber
           echo "attached: ${assets[*]}"
+
+  # The Marketplace reads https://krateo-blueprints.github.io/charts/blueprints/index.yaml and
+  # installs the version its entry names. How every chart in the organisation gets there is decided
+  # once, in krateo-blueprints/charts PUBLISHING.md, and enforced by its publisher, which also reads
+  # the served index and installs the chart anonymously before it succeeds.
+  publish-index:
+    needs: release
+    uses: krateo-blueprints/charts/.github/workflows/publish-chart.yaml@1
+    with:
+      source_repo: ${{ github.repository }}
+      git_tag: ${{ github.ref_name }}
+      channel: blueprints
+    secrets:
+      PUBLISH_TOKEN: ${{ secrets.CHARTS_PUBLISH_TOKEN }}
