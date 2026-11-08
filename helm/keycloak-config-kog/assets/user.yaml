@@ -98,7 +98,7 @@ components:
           description: Source for `value` (e.g. a password). The RDC secretRef resolver reads this Secret key and fills `value`; never set `value` directly.
         secretDataSecretRef:
           $ref: '#/components/schemas/SecretKeySelector'
-          description: Source for `secretData` (e.g. a raw OTP seed). The RDC secretRef resolver reads this Secret key and fills `secretData`.
+          description: 'Source for `secretData`. For an OTP credential the Secret key must hold Keycloak''s JSON form, {"value":"<shared secret>"}, NOT a bare seed (a bare seed is rejected with HTTP 500). The value string itself is the TOTP key; authenticator apps receive its Base32 encoding. The RDC secretRef resolver reads this Secret key and fills `secretData`.'
         value:
           type: string
           description: Resolved from valueSecretRef by the controller — do NOT set directly.

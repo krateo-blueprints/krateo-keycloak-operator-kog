@@ -69,7 +69,18 @@ matching, unmapped-sibling preservation, deletion of a CR whose create failed, a
 RDC `secrets` grant. From 0.53.0 the controller cannot self-provision the secretRef Role,
 so no `KeycloakUser` reconciles (krateo-platformops/oasgen-provider#510). **Both a password
 and an OTP credential are currently required**: a password-only user fails to reconcile
-(#20, fix in krateo-platformops/oasgen-provider#524). Disable any
+(#20, fix in krateo-platformops/oasgen-provider#524).
+
+**`KeycloakUser` Secret format** (measured against Keycloak 26.4):
+
+- the password key holds the plain password;
+- the OTP key holds Keycloak's JSON form `{"value":"<shared secret>"}`, not a bare seed
+  (a bare seed fails the create with HTTP 500, `JsonParseException`). The `value` string is
+  itself the TOTP key; an authenticator app needs its Base32 encoding;
+- `spec.username` must be at least 3 characters (Keycloak's default user profile;
+  shorter is refused with `error-invalid-length`, HTTP 400).
+
+Disable any
 resource you do not need by setting `restDefinitions.<key>.enabled: false`.
 
 ## Snowplow delegation (`snowplow.*`)
