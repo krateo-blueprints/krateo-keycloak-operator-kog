@@ -37,6 +37,13 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      # The blueprint chart: it has values.schema.json, and the repo-root
+      # compositiondefinition.yaml installs it (PUBLISHING.md rule 2). It is this repo's only
+      # chart, so the selection always includes it. Job-level, because the packaging step copies
+      # the CompositionDefinition into it and the release-asset step must skip that same copy:
+      # one definition, so the two can't drift apart.
+      BLUEPRINT_DIR: helm/keycloak-config-kog
     steps:
       - uses: actions/checkout@v4
         with:
@@ -160,11 +167,6 @@ jobs:
           echo "CompositionDefinitions stamped: $found"
 
       - name: Package and push
-        env:
-          # The blueprint chart: it has values.schema.json, and the repo-root
-          # compositiondefinition.yaml installs it (PUBLISHING.md rule 2). It is this repo's only
-          # chart, so the selection above always includes it.
-          BLUEPRINT_DIR: helm/keycloak-config-kog
         run: |
           set -euo pipefail
           # Refuse here, before GHCR holds the version, every archive the Marketplace index's publisher
@@ -311,7 +313,7 @@ jobs:
             if [ "$d" = "." ]; then out="compositiondefinition.yaml"; else out="compositiondefinition-$(basename "$d").yaml"; fi
             cp "$cd" "$stage/$out"; assets+=("$stage/$out")
           done < <(find . -type f -name compositiondefinition.yaml -not -path '*/charts/*' \
-                        -not -path './helm/keycloak-config-kog/compositiondefinition.yaml' -print0)
+                        -not -path "./${BLUEPRINT_DIR}/compositiondefinition.yaml" -print0)
           [ ${#assets[@]} -eq 0 ] && { echo "no CompositionDefinition to publish"; exit 0; }
           gh release view "${VERSION}" >/dev/null 2>&1 \
             || gh release create "${VERSION}" --title "${VERSION}" --notes "Apply the attached CompositionDefinition to register this version."
