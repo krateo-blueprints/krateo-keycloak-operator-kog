@@ -62,9 +62,14 @@ avoid crdgen collisions with same-named lowercase body properties (the Nova KOG'
 | `requiredaction` | `KeycloakRequiredAction` | `true` |
 | `authenticationexecution` | `KeycloakAuthenticationExecution` | `true` |
 
-`KeycloakUser` requires rest-dynamic-controller ≥ 0.16.1 and oasgen-provider ≥ 0.14.1
-(0.16.0 is the true floor for the `[?key=value]` credential matching, but 0.16.0
-cannot delete a CR whose create failed, so 0.16.1 is the stated floor). Disable any
+`KeycloakUser` requires oasgen-provider **0.20.0 – 0.52.0** (the release ships
+rest-dynamic-controller at the same version). 0.20.0 is the first release of the merged
+repo and already carries everything the credential mappings need: `[?key=value]`
+matching, unmapped-sibling preservation, deletion of a CR whose create failed, and the
+RDC `secrets` grant. From 0.53.0 the controller cannot self-provision the secretRef Role,
+so no `KeycloakUser` reconciles (krateo-platformops/oasgen-provider#510). **Both a password
+and an OTP credential are currently required**: a password-only user fails to reconcile
+(#20, fix in krateo-platformops/oasgen-provider#524). Disable any
 resource you do not need by setting `restDefinitions.<key>.enabled: false`.
 
 ## Snowplow delegation (`snowplow.*`)

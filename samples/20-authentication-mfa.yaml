@@ -11,7 +11,7 @@
 # All resources reference the `keycloak-admin` Configuration (see
 # 00-configurations.yaml). Replace <APP_HOST> with your real ingress hostname.
 ---
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakRealm
 metadata:
   name: mfa-demo
@@ -41,7 +41,7 @@ spec:
   webAuthnPolicyUserVerificationRequirement: preferred
 ---
 # Enable the TOTP-registration required action (built-in; managed as a CR).
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakRequiredAction
 metadata:
   name: configure-totp
@@ -59,7 +59,7 @@ spec:
   priority: 10
 ---
 # Enable the WebAuthn-registration required action.
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakRequiredAction
 metadata:
   name: webauthn-register
@@ -83,7 +83,7 @@ spec:
 # Once the flow has converged, bind it as the realm's browser flow by setting
 # `browserFlow: browser-mfa` on the KeycloakRealm above (left unbound here so a
 # first `kubectl apply` of this whole file cannot race the flow's creation).
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakAuthenticationFlow
 metadata:
   name: browser-mfa
@@ -121,7 +121,7 @@ spec:
 # acr_values=gold forces the OTP leg and the issued token carries acr=2 — the
 # signal a step-up guard checks before allowing a critical operation.
 # ---------------------------------------------------------------------------
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakAuthenticationExecution
 metadata:
   name: browser-mfa-cookie
@@ -136,7 +136,7 @@ spec:
   requirement: ALTERNATIVE
   priority: 10
 ---
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakAuthenticationExecution
 metadata:
   name: browser-mfa-idp-redirector
@@ -151,7 +151,7 @@ spec:
   requirement: ALTERNATIVE
   priority: 20
 ---
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakAuthenticationExecution
 metadata:
   name: browser-mfa-forms
@@ -169,7 +169,7 @@ spec:
   priority: 30
 ---
 # LoA 1 leg: password. loa-max-age 36000 keeps level 1 valid for the session.
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakAuthenticationExecution
 metadata:
   name: browser-mfa-loa1
@@ -185,7 +185,7 @@ spec:
   requirement: CONDITIONAL
   priority: 10
 ---
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakAuthenticationExecution
 metadata:
   name: browser-mfa-loa1-condition
@@ -204,7 +204,7 @@ spec:
     loa-condition-level: "1"
     loa-max-age: "36000"
 ---
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakAuthenticationExecution
 metadata:
   name: browser-mfa-loa1-password
@@ -220,7 +220,7 @@ spec:
   priority: 20
 ---
 # LoA 2 leg: OTP. loa-max-age 0 = re-authenticate every time level 2 is asked.
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakAuthenticationExecution
 metadata:
   name: browser-mfa-loa2
@@ -236,7 +236,7 @@ spec:
   requirement: CONDITIONAL
   priority: 20
 ---
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakAuthenticationExecution
 metadata:
   name: browser-mfa-loa2-condition
@@ -255,7 +255,7 @@ spec:
     loa-condition-level: "2"
     loa-max-age: "0"
 ---
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakAuthenticationExecution
 metadata:
   name: browser-mfa-loa2-otp
@@ -274,7 +274,7 @@ spec:
 # claim per level. ACR mapping is a standard Keycloak client attribute
 # (acr.loa.map); default.acr.values sets the ACR requested when the client does
 # not ask for a specific level.
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakClient
 metadata:
   name: acr-app

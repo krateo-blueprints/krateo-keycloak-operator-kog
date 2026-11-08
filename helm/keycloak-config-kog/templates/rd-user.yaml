@@ -32,18 +32,28 @@ spec:
       - action: create
         method: POST
         path: /admin/realms/{realm}/users
-        # Credential VALUES are secret-sourced via RDC secretRef (needs RDC >= 0.14.0 /
-        # oasgen-provider >= 0.14.1): the CR carries only {name,key} refs and the controller
-        # substitutes the Secret's value into the request body, so no plaintext password or
-        # OTP seed ever sits on the CR. Verified end-to-end against a live Keycloak — the
-        # user authenticates with a password that exists only in the Secret.
+        # Credential VALUES are secret-sourced via RDC secretRef: the CR carries only {name,key}
+        # refs and the controller substitutes the Secret's value into the request body, so no
+        # plaintext password or OTP seed ever sits on the CR. Verified end-to-end against a live
+        # Keycloak — the user authenticates with a password that exists only in the Secret.
         #
         # Credentials are addressed by CONTENT, `[?type=password]` / `[?type=otp]`, not by
-        # position: the CR may list them in either order, or carry only one of the two, and
-        # each mapping still lands on the right element. Needs RDC >= 0.16.0; the unmapped
-        # siblings on each credential (type/temporary/userLabel/credentialData) need
-        # RDC >= 0.14.0 — before that the OTP credential silently never registered because
-        # the body reached Keycloak with neither `type` nor `credentialData`.
+        # position, so the CR may list them in either order.
+        #
+        # SUPPORTED CONTROLLER RANGE (oasgen-provider release, which ships rest-dynamic-controller
+        # at the same version): 0.20.0 <= version <= 0.52.0.
+        #   - 0.20.0 is the first release of the merged repo; it carries content-addressed
+        #     paths, unmapped-sibling preservation (before it the OTP credential silently never
+        #     registered) and the RDC `secrets` grant secretRef needs. The oasgen-provider chart
+        #     must be >= 0.9.11 (RDC ClusterRole grants roles/rolebindings).
+        #   - 0.53.0 and later cannot self-provision the secretRef Role, so NO KeycloakUser
+        #     reconciles there: krateo-platformops/oasgen-provider#510.
+        #
+        # KNOWN LIMITATION — BOTH credentials are required today. Every secretRef mapping below
+        # is unconditional, so a password-only (or OTP-only) user fails to reconcile with
+        # `path "spec.credentials[?type=otp]..." not found on the custom resource`. Fix tracked
+        # in #20: an opt-in `when.customResourceFieldPresent` guard on secretRef
+        # (krateo-platformops/oasgen-provider#524), which this file adopts once released.
         fieldMapping:
           - inBody: credentials[?type=password].value
             inCustomResource: spec.credentials[?type=password].valueSecretRef
