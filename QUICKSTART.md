@@ -199,7 +199,7 @@ spec:
         key: token
 ---
 # The realm
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakRealm
 metadata:
   name: krateo
@@ -216,7 +216,7 @@ spec:
   ssoSessionMaxLifespan: 36000
 ---
 # Keystone (Horizon WebSSO) federation client
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakClient
 metadata:
   name: keystone
@@ -249,7 +249,7 @@ spec:
         "userinfo.token.claim": "true"
 ---
 # Krateo portal login client
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakClient
 metadata:
   name: krateo-authn
@@ -271,7 +271,7 @@ spec:
 ---
 # An OpenStack project group; the Keystone mapping turns membership into a
 # project/role grant.
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakGroup
 metadata:
   name: os-project-demo

@@ -16,8 +16,9 @@ timestamp: 2026-08-11T00:00:00Z
   stands one up), reachable at `keycloak.baseUrl`.
 - The KOG toolchain: `oasgen-provider` and `rest-dynamic-controller` installed in the
   cluster (`oasgen-provider` 0.12.0+ / rdc 0.11.0+ are the versions validated
-  in-cluster; the `KeycloakUser` resource needs rdc ≥ 0.16.1 / oasgen ≥ 0.14.1 — see
-  the notes in `chart/templates/rd-user.yaml`).
+  in-cluster; the `KeycloakUser` resource needs oasgen-provider (and its bundled
+  rest-dynamic-controller) **0.20.0 – 0.52.0**, and currently both a password and an OTP
+  credential — see the notes in `helm/keycloak-config-kog/templates/rd-user.yaml` and #20).
 - [External Secrets Operator](https://external-secrets.io) ≥ 0.19 for the default
   short-lived-token wiring.
 - A service-account client in Keycloak (`krateo-kog` by default) with

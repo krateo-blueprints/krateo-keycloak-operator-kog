@@ -10,7 +10,7 @@
 # All resources reference the `keycloak-admin` Configuration (see 00-configurations.yaml).
 # Replace <KRATEO_HOST> / <KEYSTONE_HOST> with your real ingress hostnames.
 ---
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakRealm
 metadata:
   name: krateo
@@ -29,7 +29,7 @@ spec:
   ssoSessionMaxLifespan: 36000
 ---
 # Keystone (Horizon WebSSO) federation client — confidential OIDC RP.
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakClient
 metadata:
   name: keystone
@@ -67,7 +67,7 @@ spec:
         "userinfo.token.claim": "true"
 ---
 # Krateo portal login client — confidential OIDC RP for the authn service.
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakClient
 metadata:
   name: krateo-authn
@@ -96,7 +96,7 @@ spec:
 ---
 # Example OpenStack project group. Membership flows to Keystone via the `groups`
 # claim; the Keystone mapping turns `os-project-demo` into a project/role grant.
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakGroup
 metadata:
   name: os-project-demo
