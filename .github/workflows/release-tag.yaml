@@ -45,7 +45,7 @@ jobs:
       # one definition, so the two can't drift apart.
       BLUEPRINT_DIR: helm/keycloak-config-kog
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0          # need history to diff against the previous tag
 
