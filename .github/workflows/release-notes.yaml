@@ -1,0 +1,40 @@
+# Generates this repo's release notes on a release tag. The workflow itself is the org-wide reusable —
+# this file supplies only the triggers, so "identical across every repo" becomes structural instead of
+# a copy each repo has to keep in step by hand.
+#
+# It is a TOP-LEVEL workflow rather than a job inside release-oci, and that is load-bearing. A called
+# workflow's permissions are capped at its caller's, and the release-oci shims pin `contents: read`,
+# so a nested job could never write a release body or a CHANGELOG. Custom secrets are not inherited
+# down a nested call either, so ANTHROPIC_API_KEY would not arrive. Triggering at the top level gives
+# both natively — which is why this needs no PAT.
+#
+# Notes never fail a release: every sink in the reusable is independently guarded, and a missing or
+# expired credential skips the job with a warning rather than a red tick.
+name: release-notes
+
+on:
+  push:
+    tags: ["[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to describe. Default: the ref that triggered this run."
+        required: false
+
+jobs:
+  release-notes:
+    uses: krateo-platformops/.github/.github/workflows/release-notes.yaml@main
+    permissions:
+      contents: write # the release body and the CHANGELOG commit
+      id-token: write # claude-code-action's GitHub App auth; the reusable cannot grant itself this
+    # EXPLICIT, NOT `inherit`. `secrets: inherit` carries nothing across an ORGANISATION
+    # boundary, and this reusable lives in krateo-platformops while this repo does not. The
+    # symptom was silent: HAVE_CRED evaluated false, the job skipped every step and still
+    # reported success, so three orgs looked identical and only one was working. Named
+    # passing reads this org's own secrets, which is what crosses.
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      RELEASE_FEED_TOKEN: ${{ secrets.RELEASE_FEED_TOKEN }}
+      SLACK_RELEASE_WEBHOOK: ${{ secrets.SLACK_RELEASE_WEBHOOK }}
+    with:
+      tag: ${{ github.event.inputs.tag || '' }}
