@@ -32,6 +32,17 @@ jobs:
           find . -type f -name Chart.yaml -not -path '*/charts/*' -not -path './.git/*' \
             -exec sed -i "s/CHART_VERSION/0.0.0-ci/g" {} +
 
+      # Gating, unlike the informational step below: two silent-defect classes that no other check
+      # sees. Chart URLs on the renamed krateoplatformops org (still answering through GitHub's
+      # redirect), and additionalStatusFields absent from their response schema (silently empty
+      # forever). Offline, with self-tests that run through the same functions as the real check.
+      - name: Validate chart URLs and status fields
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          helm template release helm/keycloak-config-kog > "$RUNNER_TEMP/rendered.yaml"
+          python3 hack/validate-chart.py helm/keycloak-config-kog "$RUNNER_TEMP/rendered.yaml" .
+
       - name: helm template + lint every chart (informational)
         run: |
           set -uo pipefail
