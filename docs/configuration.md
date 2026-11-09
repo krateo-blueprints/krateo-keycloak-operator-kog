@@ -71,6 +71,21 @@ so no `KeycloakUser` reconciles (krateo-platformops/oasgen-provider#510). **Both
 and an OTP credential are currently required**: a password-only user fails to reconcile
 (#20, fix in krateo-platformops/oasgen-provider#524).
 
+**Password-only users need the #524 guard, and an older controller drops it silently.** Each
+credential mapping in `rd-user.yaml` carries `resolver.when.customResourceFieldPresent`. On an
+oasgen-provider without #524, the RestDefinition CRD's `resolver` schema has no such field and no
+`x-kubernetes-preserve-unknown-fields`, so the API server **prunes `when` at apply time without an
+error**: the chart installs cleanly, and every password-only `KeycloakUser` then fails as in #20. To
+check that the guard survived, read it back from the live object rather than trusting a successful
+apply:
+
+```bash
+kubectl -n <ns> get restdefinition <release>-user \
+  -o jsonpath='{.spec.resource.verbsDescription[*].fieldMapping[*].resolver.when}'
+```
+
+An empty result means the controller is too old for this chart.
+
 **`KeycloakUser` Secret format** (measured against Keycloak 26.4):
 
 - the password key holds the plain password;
