@@ -16,12 +16,12 @@ docs/images/README.md: the live-GKE walkthrough screenshots and what each captur
 examples/sso-realm/README.md: an end-to-end SSO realm expressed entirely as keycloak-config-kog CRs
 examples/composition.yaml: the Krateo Composition form of the install (one KeycloakConfigKog CR)
 # Source (read at the same tag; the docs above are derived from these):
-chart/values.yaml: every value with its rationale in comments
-chart/values.schema.json: the typed values schema core-provider derives the Composition CRD from
-chart/templates/rd-client.yaml: an example RestDefinition (findby-addressed UUID resource)
-chart/templates/rd-realm.yaml: an example RestDefinition (direct natural-key resource)
-chart/templates/rd-authenticationexecution.yaml: the delegated execution RestDefinition (Snowplow RESTActions)
-chart/templates/externalsecret.yaml: the ESO Webhook + ExternalSecret admin-token wiring
+helm/keycloak-config-kog/values.yaml: every value with its rationale in comments
+helm/keycloak-config-kog/values.schema.json: the typed values schema core-provider derives the Composition CRD from
+helm/keycloak-config-kog/templates/rd-client.yaml: an example RestDefinition (findby-addressed UUID resource)
+helm/keycloak-config-kog/templates/rd-realm.yaml: an example RestDefinition (direct natural-key resource)
+helm/keycloak-config-kog/templates/rd-authenticationexecution.yaml: the delegated execution RestDefinition (Snowplow RESTActions)
+helm/keycloak-config-kog/templates/externalsecret.yaml: the ESO Webhook + ExternalSecret admin-token wiring
 compositiondefinition.yaml: this blueprint's own registration (spec.chart.version = the published chart)
 samples/00-configurations.yaml: the per-Kind <Kind>Configuration CRs pointing at the token Secret
 samples/10-sso-realm.yaml: the end-to-end SSO realm sample

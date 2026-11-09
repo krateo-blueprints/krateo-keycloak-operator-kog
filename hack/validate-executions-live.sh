@@ -37,7 +37,16 @@ export REALM="${REALM:-kog-exec-validate}"
 command -v helm >/dev/null || { echo "helm required"; exit 1; }
 command -v jq >/dev/null || { echo "jq required"; exit 1; }
 
-helm template kog-validate chart --namespace kog-validate > /tmp/kog-exec-rendered.yaml
+# The chart lives at helm/keycloak-config-kog and its Chart.yaml carries the CHART_VERSION
+# placeholder (stamped from the tag at release), which helm refuses as a version. Render a
+# stamped copy, exactly as lint.yaml does, so the working tree is never modified.
+CHART_SRC=helm/keycloak-config-kog
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+cp -R "$CHART_SRC" "$WORK/chart"
+sed -i.bak "s/CHART_VERSION/0.0.0-validate/g" "$WORK/chart/Chart.yaml"
+export RENDERED="$WORK/kog-exec-rendered.yaml"
+helm template kog-validate "$WORK/chart" --namespace kog-validate > "$RENDERED"
 
 python3 - <<'PYEOF'
 import json, os, re, subprocess, sys, urllib.request, urllib.error, urllib.parse
@@ -94,7 +103,7 @@ def check(desc, cond):
 # ---------------------------------------------------------------------------
 # 1. extract the EXACT programs from the rendered manifests
 # ---------------------------------------------------------------------------
-docs = [d for d in yaml.safe_load_all(open("/tmp/kog-exec-rendered.yaml")) if d]
+docs = [d for d in yaml.safe_load_all(open(os.environ["RENDERED"])) if d]
 ras = {d["metadata"]["name"].split("-authenticationexecution-")[-1]: d
        for d in docs if d.get("kind") == "RESTAction" and "authenticationexecution" in d["metadata"]["name"]}
 rd = next(d for d in docs if d.get("kind") == "RestDefinition"

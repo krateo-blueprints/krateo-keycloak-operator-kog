@@ -62,9 +62,51 @@ avoid crdgen collisions with same-named lowercase body properties (the Nova KOG'
 | `requiredaction` | `KeycloakRequiredAction` | `true` |
 | `authenticationexecution` | `KeycloakAuthenticationExecution` | `true` |
 
-`KeycloakUser` requires rest-dynamic-controller ≥ 0.16.1 and oasgen-provider ≥ 0.14.1
-(0.16.0 is the true floor for the `[?key=value]` credential matching, but 0.16.0
-cannot delete a CR whose create failed, so 0.16.1 is the stated floor). Disable any
+`KeycloakUser` requires oasgen-provider **>= 0.56.0** (the release ships
+rest-dynamic-controller at the same version). 0.56.0 is the first release that both
+provisions the per-namespace Role granting the controller read access to each user's
+Secrets (krateo-platformops/oasgen-provider#510), and honours the per-credential guard that
+makes a password-only (or OTP-only) user valid (krateo-platformops/oasgen-provider#524, #20).
+On 0.53.0 – 0.55.x no `KeycloakUser` reconciles at all; on 0.20.0 – 0.52.0 only users
+carrying both a password and an OTP credential do.
+
+Upgrade the **`oasgen-provider-crds`** chart to the same version as the provider. The
+RestDefinition CRD carries the new status fields (`secretRefDigest`, `secretRefRBACNamespaces`)
+and `resolver.when`. If the provider moves without its CRD chart, the API server prunes those
+fields: the guard disappears, and the provider re-runs Update on every pass while revocation
+silently does nothing.
+
+**Secret access follows users on the provider's poll, not instantly.** The Role granting
+the controller read access to a user's Secrets is created and trimmed on oasgen-provider's
+drift poll (3 minutes by default). After you delete a `KeycloakUser`, its Secrets stay
+readable by the controller until the next poll; we measured 61–101 s on kind. Nothing
+watches the generated kind yet (krateo-platformops/oasgen-provider#510).
+
+**Password-only users need the #524 guard, and an older controller drops it silently.** Each
+credential mapping in `rd-user.yaml` carries `resolver.when.customResourceFieldPresent`. On an
+oasgen-provider without #524, the RestDefinition CRD's `resolver` schema has no such field and no
+`x-kubernetes-preserve-unknown-fields`, so the API server **prunes `when` at apply time without an
+error**: the chart installs cleanly, and every password-only `KeycloakUser` then fails as in #20. To
+check that the guard survived, read it back from the live object rather than trusting a successful
+apply:
+
+```bash
+kubectl -n <ns> get restdefinition <release>-user \
+  -o jsonpath='{.spec.resource.verbsDescription[*].fieldMapping[*].resolver.when}'
+```
+
+An empty result means the controller is too old for this chart.
+
+**`KeycloakUser` Secret format** (measured against Keycloak 26.4):
+
+- the password key holds the plain password;
+- the OTP key holds Keycloak's JSON form `{"value":"<shared secret>"}`, not a bare seed
+  (a bare seed fails the create with HTTP 500, `JsonParseException`). The `value` string is
+  itself the TOTP key; an authenticator app needs its Base32 encoding;
+- `spec.username` must be at least 3 characters (Keycloak's default user profile;
+  shorter is refused with `error-invalid-length`, HTTP 400).
+
+Disable any
 resource you do not need by setting `restDefinitions.<key>.enabled: false`.
 
 ## Snowplow delegation (`snowplow.*`)
