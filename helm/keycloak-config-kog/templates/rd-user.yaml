@@ -41,7 +41,7 @@ spec:
         # position, so the CR may list them in either order.
         #
         # CONTROLLER FLOOR (oasgen-provider release, which ships rest-dynamic-controller at the
-        # same version): FLOOR_PENDING_524 — the first release carrying BOTH
+        # same version): >= 0.56.0 — the first release carrying BOTH
         #   - #510: the provider provisions the per-namespace secretRef Role from the KeycloakUser
         #     instances (0.53.0 – 0.55.x cannot, so NO KeycloakUser reconciles there), and
         #   - #524: the `resolver.when` guard below.
