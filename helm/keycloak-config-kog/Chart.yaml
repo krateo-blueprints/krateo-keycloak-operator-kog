@@ -23,6 +23,7 @@ annotations:
   krateo.io/maturity: beta
   krateoSupportedVersion: ">= 2.5.1"
 sources:
+  - https://github.com/krateo-blueprints/krateo-keycloak-operator-kog
   - https://www.keycloak.org/docs-api/latest/rest-api/openapi.yaml
   - https://github.com/krateoplatformops/oasgen-provider
   - https://github.com/krateoplatformops/rest-dynamic-controller
