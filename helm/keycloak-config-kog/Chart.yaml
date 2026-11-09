@@ -11,7 +11,7 @@ type: application
 version: CHART_VERSION
 appVersion: "26.0"
 home: https://www.keycloak.org/
-icon: https://raw.githubusercontent.com/krateoplatformops/krateo/main/docs/media/logo.svg
+icon: https://raw.githubusercontent.com/krateo-platformops/.github/main/brand/logo.svg
 keywords:
   - security
   - keycloak
@@ -25,7 +25,6 @@ annotations:
 sources:
   - https://github.com/krateo-blueprints/krateo-keycloak-operator-kog
   - https://www.keycloak.org/docs-api/latest/rest-api/openapi.yaml
-  - https://github.com/krateoplatformops/oasgen-provider
-  - https://github.com/krateoplatformops/rest-dynamic-controller
+  - https://github.com/krateo-platformops/oasgen-provider
 maintainers:
   - name: krateo
