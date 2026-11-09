@@ -58,10 +58,10 @@ restDefinitions:
     enabled: true
     kind: KeycloakGroup
   # Realm user, including credentials sourced from a Kubernetes Secret (password + OTP seed)
-  # rather than plaintext on the CR. Requires oasgen-provider 0.20.0 - 0.52.0 (which ships
-  # rest-dynamic-controller at the same version); 0.53.0+ cannot reconcile secretRef kinds
-  # (oasgen-provider#510). Both a password and an OTP credential are currently required
-  # (#20). See the notes in templates/rd-user.yaml.
+  # rather than plaintext on the CR. Requires oasgen-provider >= 0.56.0 (which ships
+  # rest-dynamic-controller at the same version): the first release that provisions the
+  # secretRef Role (oasgen-provider#510) and honours the password-only guard (#524).
+  # See the notes in templates/rd-user.yaml.
   user:
     enabled: true
     kind: KeycloakUser

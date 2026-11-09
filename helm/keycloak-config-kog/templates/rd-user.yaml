@@ -40,25 +40,31 @@ spec:
         # Credentials are addressed by CONTENT, `[?type=password]` / `[?type=otp]`, not by
         # position, so the CR may list them in either order.
         #
-        # SUPPORTED CONTROLLER RANGE (oasgen-provider release, which ships rest-dynamic-controller
-        # at the same version): 0.20.0 <= version <= 0.52.0.
-        #   - 0.20.0 is the first release of the merged repo; it carries content-addressed
-        #     paths, unmapped-sibling preservation (before it the OTP credential silently never
-        #     registered) and the RDC `secrets` grant secretRef needs. The oasgen-provider chart
-        #     must be >= 0.9.11 (RDC ClusterRole grants roles/rolebindings).
-        #   - 0.53.0 and later cannot self-provision the secretRef Role, so NO KeycloakUser
-        #     reconciles there: krateo-platformops/oasgen-provider#510.
+        # CONTROLLER FLOOR (oasgen-provider release, which ships rest-dynamic-controller at the
+        # same version): >= 0.56.0 — the first release carrying BOTH
+        #   - #510: the provider provisions the per-namespace secretRef Role from the KeycloakUser
+        #     instances (0.53.0 – 0.55.x cannot, so NO KeycloakUser reconciles there), and
+        #   - #524: the `resolver.when` guard below.
+        # Before 0.53.0 (0.20.0 – 0.52.0) secretRef reconciled but every mapping was required,
+        # so only users carrying BOTH a password and an OTP credential worked.
         #
-        # KNOWN LIMITATION — BOTH credentials are required today. Every secretRef mapping below
-        # is unconditional, so a password-only (or OTP-only) user fails to reconcile with
-        # `path "spec.credentials[?type=otp]..." not found on the custom resource`. Fix tracked
-        # in #20: an opt-in `when.customResourceFieldPresent` guard on secretRef
-        # (krateo-platformops/oasgen-provider#524), which this file adopts once released.
+        # Each credential mapping is GUARDED on its own entry
+        # (`resolver.when.customResourceFieldPresent: spec.credentials[?type=…]`, oasgen-provider#524):
+        #   - entry absent        -> the mapping is skipped: no Secret read, nothing in the body. So a
+        #                            password-only (or OTP-only) user is valid (#20).
+        #   - entry present       -> the ref is REQUIRED as before; an entry with no usable ref fails the
+        #                            request loudly, so a user who declared an OTP credential is never
+        #                            created password-only.
+        #   - two entries of one type -> the selector matches twice and the request fails (no guess).
+        # Needs the oasgen-provider release carrying both #510 and #524; older controllers reject or ignore
+        # `when` and fail exactly as #20 describes.
         fieldMapping:
           - inBody: credentials[?type=password].value
             inCustomResource: spec.credentials[?type=password].valueSecretRef
             resolver:
               type: secretRef
+              when:
+                customResourceFieldPresent: spec.credentials[?type=password]
               secretRef:
                 nameFromCustomResource: spec.credentials[?type=password].valueSecretRef.name
                 keyFromCustomResource: spec.credentials[?type=password].valueSecretRef.key
@@ -66,6 +72,8 @@ spec:
             inCustomResource: spec.credentials[?type=otp].secretDataSecretRef
             resolver:
               type: secretRef
+              when:
+                customResourceFieldPresent: spec.credentials[?type=otp]
               secretRef:
                 nameFromCustomResource: spec.credentials[?type=otp].secretDataSecretRef.name
                 keyFromCustomResource: spec.credentials[?type=otp].secretDataSecretRef.key
@@ -85,6 +93,8 @@ spec:
             inCustomResource: spec.credentials[?type=password].valueSecretRef
             resolver:
               type: secretRef
+              when:
+                customResourceFieldPresent: spec.credentials[?type=password]
               secretRef:
                 nameFromCustomResource: spec.credentials[?type=password].valueSecretRef.name
                 keyFromCustomResource: spec.credentials[?type=password].valueSecretRef.key
@@ -92,6 +102,8 @@ spec:
             inCustomResource: spec.credentials[?type=otp].secretDataSecretRef
             resolver:
               type: secretRef
+              when:
+                customResourceFieldPresent: spec.credentials[?type=otp]
               secretRef:
                 nameFromCustomResource: spec.credentials[?type=otp].secretDataSecretRef.name
                 keyFromCustomResource: spec.credentials[?type=otp].secretDataSecretRef.key
