@@ -7,10 +7,15 @@
 # Prereq: a GitHub OAuth App (Settings > Developer settings > OAuth Apps) with
 # Authorization callback URL:
 #   https://<KEYCLOAK_HOST>/realms/krateo/broker/github/endpoint
-# Replace <GITHUB_OAUTH_APP_ID> / <GITHUB_OAUTH_APP_SECRET>.
+# Replace <GITHUB_OAUTH_APP_ID>. The app's CLIENT SECRET never goes in this file:
+# put it in a Secret in the IdP's namespace and the controller reads it from there
+# (keycloak-config-kog >= 0.4.8):
+#   kubectl -n krateo-system create secret generic github-idp \
+#     --from-literal=clientSecret='<GITHUB_OAUTH_APP_SECRET>'
+# (type it at a prompt or read it from a file; do not leave it in shell history).
 ---
 # The GitHub broker (Keycloak's built-in social provider — GitHub is OAuth2).
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakIdentityProvider
 metadata:
   name: github
@@ -25,16 +30,19 @@ spec:
   displayName: "GitHub"
   enabled: true
   trustEmail: true
+  # The client secret comes from the Secret above, never from this spec.
+  clientSecretRef:
+    name: github-idp
+    key: clientSecret
   config:
     clientId: "<GITHUB_OAUTH_APP_ID>"
-    clientSecret: "<GITHUB_OAUTH_APP_SECRET>"
     # read:org lets Keycloak see org/team membership (needed only for the
     # advanced, team-based mapping variant noted in the README).
     defaultScope: "read:user user:email read:org"
 ---
 # The group every federated OpenStack user needs. Its attributes are what the
 # Keystone mapping reads to assign a project/role (see ../sso-end-to-end).
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakGroup
 metadata:
   name: os-project-demo
@@ -55,7 +63,7 @@ spec:
 # `hardcoded-group-idp-mapper` puts EVERY GitHub-brokered user into
 # /os-project-demo, so they land in the OpenStack `demo` project. Fully
 # declarative; no console clicks.
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakIdentityProviderMapper
 metadata:
   name: github-default-group

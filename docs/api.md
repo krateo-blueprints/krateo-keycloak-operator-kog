@@ -53,8 +53,8 @@ A Composition instance is then a CR of that Kind whose `spec` mirrors the chart
 ## The generated Keycloak resource kinds
 
 Installing the chart registers one `RestDefinition` (`ogen.krateo.io/v1alpha1`) per
-enabled resource; oasgen-provider turns each into a pair of CRDs under
-`keycloak.ogen.krateo.io/v1alpha1` (the `resourceGroup`):
+enabled resource; oasgen-provider turns each into a pair of CRDs in the
+`keycloak.ogen.krateo.io` group (the `resourceGroup`). The resource kinds are served as `keycloak.ogen.krateo.io/v1` (the version is each OAS asset's `info.version`), their `<Kind>Configuration` companions as `keycloak.ogen.krateo.io/v1alpha1`:
 
 - a **resource CRD** (e.g. `KeycloakClient`) — the Keycloak resource itself, and
 - a **`<Kind>Configuration` CRD** (e.g. `KeycloakClientConfiguration`) — carrying the
@@ -71,11 +71,18 @@ Each resource CR references its Configuration via `spec.configurationRef`.
 | `KeycloakClientScope` | findby + CRUD on `…/client-scopes/{id}` | `name` → UUID via findby |
 | `KeycloakGroup` | findby + CRUD on `…/groups/{id}` | `name` → UUID via findby |
 | `KeycloakUser` | findby + CRUD on `…/users/{id}`; credentials from a Secret | `username` → UUID via findby |
-| `KeycloakIdentityProvider` | CRUD on `…/identity-provider/instances/{alias}` | natural key `alias` |
+| `KeycloakIdentityProvider` | CRUD on `…/identity-provider/instances/{alias}`; client secret from a Secret (`clientSecretRef`) | natural key `alias` |
 | `KeycloakIdentityProviderMapper` | findby + CRUD on IdP mappers | `name` → UUID via findby; needs both `alias` (path) **and** `identityProviderAlias` (body) |
 | `KeycloakAuthenticationFlow` | findby + CRUD on `…/authentication/flows` | `alias` → UUID via findby |
 | `KeycloakRequiredAction` | CRUD on `…/authentication/required-actions/{alias}` | natural key `alias`; base actions ship built-in (reconcile observes+updates) |
 | `KeycloakAuthenticationExecution` | delegated — see below | `(realm, flowAlias, provider \| alias)` |
+
+**Identity-provider client secret.** Put the IdP's client secret (e.g. a GitHub OAuth app's) in a
+Secret in the CR's own namespace and reference it with `spec.clientSecretRef: {name, key}`. The
+controller writes its value into `config.clientSecret` on create and update, so the secret never sits
+in the custom resource (verified live: the request carries it, the CR and the controller log never
+do). Never set `config.clientSecret` directly. Changing only the Secret's content is not detected as
+drift: make any spec change, or recreate the CR, to push a rotated secret.
 
 For UUID-addressed kinds the RD declares `excludedSpecFields: [id]` and sources `{id}`
 from `status.id` (populated by findby) via `requestFieldMapping`; `{realm}` stays a

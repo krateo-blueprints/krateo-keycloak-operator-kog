@@ -22,28 +22,53 @@ spec:
     excludedSpecFields:
       - internalId
     verbsDescription:
+      # The IdP CLIENT SECRET is secret-sourced via RDC secretRef: the CR carries only
+      # clientSecretRef {name,key}, and the controller writes the Secret's value into
+      # config.clientSecret on create and update, so the secret never sits in the CR spec.
+      # Guarded on its own presence (`resolver.when`, oasgen-provider >= 0.56.0): an IdP with no
+      # client secret (e.g. SAML) needs no Secret, while a declared ref that cannot be read fails
+      # the request loudly instead of creating the IdP without its secret.
       - action: create
         method: POST
         path: /admin/realms/{realm}/identity-provider/instances
+        fieldMapping:
+          - inBody: config.clientSecret
+            inCustomResource: spec.clientSecretRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.clientSecretRef
+              secretRef:
+                nameFromCustomResource: spec.clientSecretRef.name
+                keyFromCustomResource: spec.clientSecretRef.key
       - action: findby
         method: GET
         path: /admin/realms/{realm}/identity-provider/instances
       - action: get
         method: GET
         path: /admin/realms/{realm}/identity-provider/instances/{alias}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: alias
             inCustomResource: spec.alias
       - action: update
         method: PUT
         path: /admin/realms/{realm}/identity-provider/instances/{alias}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: alias
             inCustomResource: spec.alias
+          - inBody: config.clientSecret
+            inCustomResource: spec.clientSecretRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.clientSecretRef
+              secretRef:
+                nameFromCustomResource: spec.clientSecretRef.name
+                keyFromCustomResource: spec.clientSecretRef.key
       - action: delete
         method: DELETE
         path: /admin/realms/{realm}/identity-provider/instances/{alias}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: alias
             inCustomResource: spec.alias
 {{- end }}

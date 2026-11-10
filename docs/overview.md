@@ -45,8 +45,8 @@ the SSO-relevant subset.
 
 ## Resources exposed
 
-Every generated kind lives under `keycloak.ogen.krateo.io/v1alpha1`
-(`resourceGroup`):
+Every generated kind lives in the `keycloak.ogen.krateo.io` group (`resourceGroup`). The
+resource kinds are served as `keycloak.ogen.krateo.io/v1` (the version is each OAS asset's `info.version`), their `<Kind>Configuration` companions as `keycloak.ogen.krateo.io/v1alpha1`:
 
 | CR Kind | Keycloak resource | Addressing |
 |---|---|---|

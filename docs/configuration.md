@@ -133,7 +133,7 @@ templates do **not** set these.
 
 | key | default | effect |
 |---|---|---|
-| `resourceGroup` | `keycloak.ogen.krateo.io` | the Kubernetes API group the generated CRDs register under. GVK = `<resourceGroup>/v1alpha1`. |
+| `resourceGroup` | `keycloak.ogen.krateo.io` | the Kubernetes API group the generated CRDs register under. Resource kinds are `<resourceGroup>/v1` (each OAS asset's `info.version`); their `<Kind>Configuration` companions are `<resourceGroup>/v1alpha1`. |
 
 ## Debugging a resource (per-resource verbose)
 
