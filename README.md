@@ -29,7 +29,7 @@ Two design decisions define it:
    Keycloak's token endpoint (`client_credentials`) into the `keycloak-admin-token`
    Secret on a sub-TTL interval.
 
-Resources exposed (all under `keycloak.ogen.krateo.io/v1alpha1`): `KeycloakRealm`,
+Resources exposed (`keycloak.ogen.krateo.io/v1`; each `<Kind>Configuration` is `v1alpha1`): `KeycloakRealm`,
 `KeycloakClient`, `KeycloakProtocolMapper`, `KeycloakClientScope`, `KeycloakGroup`,
 `KeycloakUser`, `KeycloakIdentityProvider`, `KeycloakIdentityProviderMapper`,
 `KeycloakAuthenticationFlow`, `KeycloakRequiredAction`, and

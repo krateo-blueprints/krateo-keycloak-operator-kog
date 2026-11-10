@@ -44,12 +44,35 @@ components:
           type: string
         config:
           type: object
+          description: Provider settings (clientId, authorizationUrl, ...). Do NOT put clientSecret
+            here; reference it with clientSecretRef so it never sits in the custom resource.
           additionalProperties:
             type: string
+        clientSecretRef:
+          $ref: '#/components/schemas/SecretKeySelector'
         internalId:
           type: string
           description: Server-generated identifier (read-only).
           readOnly: true
+    SecretKeySelector:
+      type: object
+      description: The IdP client secret, as a key in a Secret in the custom resource's OWN namespace.
+        The controller writes its value into config.clientSecret on create and update; the custom
+        resource carries only this reference. Not a Keycloak field.
+      required:
+      - name
+      - key
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$'
+        key:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[-._a-zA-Z0-9]+$'
 paths:
   /admin/realms/{realm}/identity-provider/instances:
     post:

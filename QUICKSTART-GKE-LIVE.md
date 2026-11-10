@@ -79,7 +79,7 @@ Keystone client.
 
 ```yaml
 # osh-sso-values/realm.yaml (excerpt)
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakRealm
 metadata:
   name: krateo
@@ -94,7 +94,7 @@ spec:
   sslRequired: none
   loginWithEmailAllowed: true
 ---
-apiVersion: keycloak.ogen.krateo.io/v1alpha1
+apiVersion: keycloak.ogen.krateo.io/v1
 kind: KeycloakClient
 metadata:
   name: keystone

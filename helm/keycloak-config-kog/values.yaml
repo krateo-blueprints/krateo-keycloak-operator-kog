@@ -101,5 +101,6 @@ snowplow:
   # supply this Secret yourself.
   endpointSecretName: keycloak-admin-endpoint
 
-# Kubernetes API group the generated CRDs register under. GVK = <group>/v1alpha1.
+# Kubernetes API group the generated CRDs register under. Resource kinds are <group>/v1 (each OAS
+# asset's info.version); their <Kind>Configuration companions are <group>/v1alpha1.
 resourceGroup: keycloak.ogen.krateo.io
