@@ -86,6 +86,15 @@ spec:
       - action: update
         method: PUT
         path: /admin/realms/{realm}/users/{id}
+        # OTP is enrolled ONCE, at create. Keycloak's PUT /users/{id} refuses to recreate an OTP
+        # credential the user already has (HTTP 409 "User exists with same username or email", its
+        # generic duplicate message), so re-sending it made EVERY spec update of an OTP user fail.
+        # Measured on Keycloak 26.4: a PUT carrying only the password credential returns 204 and
+        # leaves the existing OTP in place. So the update body keeps the password (rotation still
+        # works) and drops OTP entries. Changing an OTP seed means recreating the KeycloakUser.
+        # requestTransform runs after the field mappings have composed the body (RDC >= 0.17.0).
+        requestTransform:
+          inline: 'if has("credentials") then (.credentials |= map(select(.type != "otp"))) | (if (.credentials | length) == 0 then del(.credentials) else . end) else . end'
         fieldMapping:
           - inPath: id
             inCustomResource: status.id
