@@ -54,8 +54,8 @@
             "refreshInterval": {
               "type": "string",
               "title": "Refresh interval",
-              "description": "How often ESO mints a fresh token. Keep this below the Keycloak access-token lifespan so the bearer never goes stale.",
-              "default": "60s"
+              "description": "How often ESO re-mints the token. Must stay well below the access-token lifespan (Keycloak's master realm default is 60 s), or a consumer can receive a token at the instant it expires.",
+              "default": "30s"
             },
             "generatorRef": {
               "type": "object",
@@ -112,6 +112,30 @@
                   "default": "clientSecret"
                 }
               }
+            }
+          }
+        },
+        "bootstrap": {
+          "type": "object",
+          "title": "Bootstrap service account",
+          "description": "Authenticate as the bootstrap admin service account krateo-keycloak-blueprint (>= 0.2.3) creates, copied from the Keycloak namespace by an ESO Kubernetes SecretStore that may read only that Secret. A fresh install then needs no hand-made client.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "Enabled",
+              "description": "Use the blueprint's bootstrap service account instead of auth.externalSecret.clientId / clientSecretRef.",
+              "default": false
+            },
+            "namespace": {
+              "type": "string",
+              "title": "Keycloak namespace",
+              "description": "Namespace of the blueprint's Keycloak, where the bootstrap Secret lives. Required when enabled."
+            },
+            "secretName": {
+              "type": "string",
+              "title": "Bootstrap Secret",
+              "description": "The blueprint's bootstrap service-account Secret (keys client-id, client-secret).",
+              "default": "keycloak-bootstrap-service"
             }
           }
         }
