@@ -332,12 +332,6 @@
       "title": "Resource group",
       "description": "Kubernetes API group the generated CRDs register under. GVK = <group>/v1alpha1.",
       "default": "keycloak.ogen.krateo.io"
-    },
-    "verbose": {
-      "type": "boolean",
-      "title": "Verbose logging",
-      "description": "Enable verbose logging on the generated connectors (annotation krateo.io/connector-verbose).",
-      "default": false
     }
   }
 }

@@ -11,7 +11,7 @@ timestamp: 2026-08-11T00:00:00Z
 
 Everything is `chart/values.yaml`, typed by `chart/values.schema.json`
 (title `Keycloak Config KOG`). The top-level keys are `keycloak`, `auth`,
-`restDefinitions`, `snowplow`, `resourceGroup`, `verbose`.
+`restDefinitions`, `snowplow`, `resourceGroup`.
 
 ## Keycloak target (`keycloak.*`)
 
@@ -129,9 +129,43 @@ This surface additionally requires Snowplow + authn wired into the rdc deploymen
 (`URL_SNOWPLOW`/`URL_AUTHN` + a projected authn token) — the stock oasgen rdc
 templates do **not** set these.
 
-## Group and logging (`resourceGroup`, `verbose`)
+## Group (`resourceGroup`)
 
 | key | default | effect |
 |---|---|---|
 | `resourceGroup` | `keycloak.ogen.krateo.io` | the Kubernetes API group the generated CRDs register under. GVK = `<resourceGroup>/v1alpha1`. |
-| `verbose` | `false` | verbose logging on the generated connectors (the `krateo.io/connector-verbose` annotation on each `RestDefinition`). |
+
+## Debugging a resource (per-resource verbose)
+
+Verbosity is set **per custom resource**, not by this chart. The generated controller reads
+`krateo.io/connector-verbose` from the resource it is reconciling and from nothing else, so
+annotate the one resource you are debugging:
+
+```yaml
+apiVersion: keycloak.ogen.krateo.io/v1
+kind: KeycloakUser
+metadata:
+  name: alice
+  annotations:
+    krateo.io/connector-verbose: "true"   # dumps this resource's HTTP exchanges to the controller log
+spec:
+  # ...
+```
+
+or on a live resource:
+
+```bash
+kubectl annotate keycloakuser alice krateo.io/connector-verbose=true      # on
+kubectl annotate keycloakuser alice krateo.io/connector-verbose-          # off
+```
+
+Each request and response is then written to the log of that kind's controller
+(`<release>-<kind>-controller` in the release namespace), headers and body included.
+On the supported controller floor (oasgen-provider >= 0.56.0) the `Authorization` header
+and every secretRef-resolved value (passwords, OTP seeds) are written as `***REDACTED***`.
+Below oasgen-provider 0.26.1 the bearer token was dumped in cleartext, so do not enable it
+on an older install. Turn it off when you are done: the dump is per request and noisy.
+
+Before 0.4.7 this chart had a `verbose` value that put the annotation on each
+`RestDefinition`. Nothing reads it there, so it never had any effect, and it was removed
+in 0.4.7. A values file that still sets `verbose` installs unchanged and the key is ignored.
