@@ -1,0 +1,100 @@
+{{- /* Default ON when the key is absent: a release upgraded with --reuse-values from a version
+     without `executionIdentity` must still render what its execution path needs. */ -}}
+{{- $ei := .Values.executionIdentity | default dict }}
+{{- if and .Values.restDefinitions.authenticationexecution.enabled (ne (toString $ei.enabled) "false") }}
+{{- /*
+What the KeycloakAuthenticationExecution path needs beyond its RestDefinition and RESTActions, so
+nobody applies it by hand:
+
+  1. an authn ServiceAccount allowlist CR: the execution controller may exchange its projected
+     (audience authn) token for an authn identity in group krateo:rdc;
+  2. that identity may `get` ONLY the four RESTActions this chart ships;
+  3. snowplow, which resolves those RESTActions' endpointRef, may `get` ONLY the Endpoint Secret.
+
+The controller's ServiceAccount name is oasgen-provider's convention for the generated kind:
+<lowercase kind>s-<resourceGroup>-v1alpha1 (verified live: keycloakauthenticationexecutions-
+keycloak.ogen.krateo.io-v1alpha1). authn's issued username is this CR's metadata.name, so it is the
+same string.
+*/ -}}
+{{- $sa := printf "%ss-%s-v1alpha1" (lower .Values.restDefinitions.authenticationexecution.kind) .Values.resourceGroup }}
+{{- $group := $ei.group | default "krateo:rdc" }}
+apiVersion: serviceaccount.authn.krateo.io/v1alpha1
+kind: ServiceAccount
+metadata:
+  name: {{ $sa }}
+  labels:
+    {{- include "keycloak-config-kog.labels" . | nindent 4 }}
+spec:
+  displayName: {{ .Values.restDefinitions.authenticationexecution.kind }} controller
+  principal: controller
+  groups:
+    - {{ $group }}
+  serviceAccountRef:
+    name: {{ $sa }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-authenticationexecution-restactions
+  labels:
+    {{- include "keycloak-config-kog.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - templates.krateo.io
+    resources:
+      - restactions
+    resourceNames:
+      - {{ .Release.Name }}-authenticationexecution-observe
+      - {{ .Release.Name }}-authenticationexecution-create
+      - {{ .Release.Name }}-authenticationexecution-update
+      - {{ .Release.Name }}-authenticationexecution-delete
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-authenticationexecution-restactions
+  labels:
+    {{- include "keycloak-config-kog.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Release.Name }}-authenticationexecution-restactions
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: {{ $group }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Release.Name }}-snowplow-endpoint
+  labels:
+    {{- include "keycloak-config-kog.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - {{ .Values.snowplow.endpointSecretName }}
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Release.Name }}-snowplow-endpoint
+  labels:
+    {{- include "keycloak-config-kog.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Release.Name }}-snowplow-endpoint
+subjects:
+  - kind: ServiceAccount
+    name: {{ ($ei.snowplowServiceAccount).name | default "snowplow" }}
+    namespace: {{ ($ei.snowplowServiceAccount).namespace | default .Release.Namespace }}
+{{- end }}

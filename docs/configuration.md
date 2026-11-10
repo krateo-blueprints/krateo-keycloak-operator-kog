@@ -149,6 +149,28 @@ This surface additionally requires Snowplow + authn wired into the rdc deploymen
 (`URL_SNOWPLOW`/`URL_AUTHN` + a projected authn token) — the stock oasgen rdc
 templates do **not** set these.
 
+## Execution identity (`executionIdentity.*`)
+
+`KeycloakAuthenticationExecution` delegates its lifecycle to Snowplow `RESTAction`s, and its
+controller authenticates to snowplow through authn. When `restDefinitions.authenticationexecution`
+is enabled, the chart renders what that needs, so nothing is applied by hand:
+
+| key | default | effect |
+|---|---|---|
+| `executionIdentity.enabled` | `true` | render the objects below. Requires the authn CRDs (`serviceaccount.authn.krateo.io`). |
+| `executionIdentity.group` | `krateo:rdc` | authn group the controller's identity joins. |
+| `executionIdentity.snowplowServiceAccount.name` / `.namespace` | `snowplow` / release namespace | snowplow's ServiceAccount. |
+
+- an authn `ServiceAccount` allowlist CR for the execution controller, named the way oasgen names
+  its ServiceAccount (`<lowercase kind>s-<resourceGroup>-v1alpha1`);
+- a Role granting `get` on **only** this chart's four RESTActions, bound to that group;
+- a Role letting snowplow `get` **only** the Endpoint Secret (`snowplow.endpointSecretName`).
+
+Verified live: with these objects removed, the execution controller is refused by authn (`403 no
+ServiceAccount mapping … not in the exchange allowlist`); with the chart rendering them, every
+execution reconciles. The controllers still need the RDC wiring (`URL_SNOWPLOW`, `URL_AUTHN`, the
+projected authn token), which are oasgen-provider chart values (see ARCHITECTURE).
+
 ## Group (`resourceGroup`)
 
 | key | default | effect |
