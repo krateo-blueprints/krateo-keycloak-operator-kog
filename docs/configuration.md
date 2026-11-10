@@ -105,6 +105,12 @@ An empty result means the controller is too old for this chart.
   itself the TOTP key; an authenticator app needs its Base32 encoding;
 - `spec.username` must be at least 3 characters (Keycloak's default user profile;
   shorter is refused with `error-invalid-length`, HTTP 400).
+- **OTP is enrolled once, at create.** Updates keep sending the password (so it rotates) but
+  never the OTP credential: Keycloak refuses to recreate an existing OTP (HTTP 409, reported as
+  "User exists with same username or email"), which used to make every spec update of an OTP
+  user fail. To change an OTP seed, recreate the `KeycloakUser`.
+- **Rotating a password:** update the Secret, then change the `KeycloakUser` spec (any field).
+  A Secret change alone doesn't trigger a reconcile.
 
 Disable any
 resource you do not need by setting `restDefinitions.<key>.enabled: false`.
