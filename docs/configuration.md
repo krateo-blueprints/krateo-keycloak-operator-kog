@@ -30,11 +30,31 @@ rest-dynamic-controller reads a bearer token from a Secret referenced by each CR
 | `auth.secretName` | `keycloak-admin-token` | the Secret ESO writes the token into; every `<Kind>Configuration.spec.authentication.bearer.tokenRef` points here. |
 | `auth.secretKey` | `token` | the key within that Secret. |
 | `auth.externalSecret.enabled` | `true` | render the ESO `Webhook` generator + `ExternalSecret`. Set `false` to supply the token Secret yourself. |
-| `auth.externalSecret.refreshInterval` | `60s` | must stay **below** the Keycloak access-token lifespan so the bearer never goes stale. |
+| `auth.externalSecret.refreshInterval` | `30s` | must stay **well below** the Keycloak access-token lifespan so the bearer never goes stale. The master realm defaults to 60 s (measured `exp - iat = 60`), so 30 s leaves half a lifetime of margin. |
 | `auth.externalSecret.generatorRef` | `Webhook` `keycloak-admin-token-webhook` | the ESO Generator (preferred) or SecretStore that yields the token. |
 | `auth.externalSecret.tokenEndpoint` | `…/realms/master/protocol/openid-connect/token` | Keycloak's `client_credentials` token endpoint the generator POSTs to. |
 | `auth.externalSecret.clientId` | `krateo-kog` | the service-account client that mints the token. Needs `serviceAccountsEnabled` + `realm-management` roles. |
 | `auth.externalSecret.clientSecretRef.name` / `.key` | `keycloak-kog-client` / `clientSecret` | a **pre-existing** Secret holding the client secret (never stored in values). The Secret must carry the `external-secrets.io/type: webhook` label or ESO refuses to read it. |
+
+### Authenticating as the blueprint's bootstrap service account (`auth.bootstrap.*`)
+
+| key | default | effect |
+|---|---|---|
+| `auth.bootstrap.enabled` | `false` | authenticate as the bootstrap admin service account that krateo-keycloak-blueprint (>= 0.2.3) creates, instead of `auth.externalSecret.clientId` / `clientSecretRef`. A fresh install then needs **no hand-made client**. |
+| `auth.bootstrap.namespace` | `""` | namespace of the blueprint's Keycloak (where its bootstrap Secret lives). **Required** when enabled. |
+| `auth.bootstrap.secretName` | `keycloak-bootstrap-service` | the blueprint's bootstrap service-account Secret (keys `client-id`, `client-secret`). |
+
+ESO generators only read Secrets in their own namespace, so the chart copies that ONE Secret
+into the release namespace: an ESO Kubernetes `SecretStore` whose ServiceAccount has a Role in
+the Keycloak namespace granting `get` on exactly that Secret (by `resourceNames`), plus an
+`ExternalSecret` that writes the copy with the `external-secrets.io/type=webhook` label the
+generator requires. Verified live against blueprint 0.2.3 + its operator: the copy matches the
+source, the reader can get nothing else (not the bootstrap user's Secret, not the DB Secret, no
+`list`), and the minted token (`azp=krateo-bootstrap`) reads (200) and writes (201) the admin API.
+
+The bootstrap service account is **temporary** by Keycloak's definition. In the planned end
+state, the KOG uses it to create its permanent `krateo-kog` client, switches to it, and deletes
+the bootstrap accounts. That step is not shipped yet.
 
 The generated `ExternalSecret` is `external-secrets.io/v1` (v1beta1 is removed); the
 Webhook body references the secret as `.kog.clientSecret` (name-then-key), and
@@ -165,12 +185,14 @@ On the supported controller floor (oasgen-provider >= 0.56.0), **requests** are 
 `Authorization` header and every secretRef-resolved value (passwords, OTP seeds, client
 secrets) are written as `***REDACTED***`.
 
-**Responses are NOT redacted: they are dumped verbatim.** Keycloak's admin API returns some
+**Responses are NOT redacted: they are dumped verbatim, headers included, whether or not pretty
+JSON is on** (oasgen-provider#566). Keycloak's admin API returns some
 secrets in its responses. Measured on 0.56.0: with verbose on a `KeycloakClient`, the findby
 response (`GET …/clients`, the realm's whole client list) wrote the client secret of every
 confidential client in the realm into the controller log. **Never enable verbose on
 `KeycloakClient`** in a cluster whose logs anyone else can read, and treat any log captured
-with it as containing those secrets. `KeycloakUser` and `KeycloakIdentityProvider` responses
+with it as containing those secrets. Remember that controller logs are usually shipped to a
+central store, read by more people than can run `kubectl logs`. `KeycloakUser` and `KeycloakIdentityProvider` responses
 were checked and do not carry their secrets: Keycloak never returns passwords and masks an
 IdP's clientSecret as `**********`.
 

@@ -20,7 +20,10 @@ auth:
   secretKey: token
   externalSecret:
     enabled: true
-    refreshInterval: "60s"          # < access-token lifespan
+    # Must stay well BELOW the access-token lifespan, or a consumer can be handed a token at the
+    # instant it expires. Keycloak's master realm defaults to 60 s (measured: exp - iat = 60), so
+    # refresh at half of that.
+    refreshInterval: "30s"
     # Name of an ESO Generator (preferred) OR SecretStore that yields the token.
     # See templates/externalsecret.yaml for the two supported wiring modes.
     generatorRef:
@@ -31,9 +34,21 @@ auth:
     tokenEndpoint: "http://keycloak-service.keycloak-system.svc.cluster.local:8080/realms/master/protocol/openid-connect/token"
     clientId: "krateo-kog"
     # The client secret itself comes from a pre-existing Secret (not in values).
+    # Ignored when auth.bootstrap.enabled: the client id and secret then come from the
+    # blueprint's bootstrap service account instead.
     clientSecretRef:
       name: keycloak-kog-client
       key: clientSecret
+  # Authenticate as the bootstrap admin SERVICE ACCOUNT that krateo-keycloak-blueprint (>= 0.2.3)
+  # creates, so a fresh install needs no hand-made client. The chart copies that one Secret from
+  # the Keycloak namespace into this one with an ESO Kubernetes SecretStore whose ServiceAccount may
+  # `get` ONLY that Secret (resourceNames), and the token generator reads the copy.
+  bootstrap:
+    enabled: false
+    # Namespace of the blueprint's Keycloak, where Secret `secretName` lives. Required when enabled.
+    namespace: ""
+    # The blueprint's bootstrap service-account Secret (keys client-id, client-secret).
+    secretName: keycloak-bootstrap-service
 
 # ---------------------------------------------------------------------------
 # Which RestDefinitions to emit. Each maps 1:1 to an assets/<key>.yaml OAS.
