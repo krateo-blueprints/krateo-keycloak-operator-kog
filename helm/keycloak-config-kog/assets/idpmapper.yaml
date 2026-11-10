@@ -30,7 +30,7 @@ components:
           description: Parent IdP alias; must equal the {alias} path param.
         identityProviderMapper:
           type: string
-          description: e.g. hardcoded-group-idp-mapper, oidc-username-idp-mapper
+          description: e.g. oidc-hardcoded-group-idp-mapper, oidc-hardcoded-role-idp-mapper. The id must be one Keycloak registers for the IdP's provider (GET .../identity-provider/instances/{alias}/mapper-types); an unknown id is accepted at creation and fails every login
         config:
           type: object
           additionalProperties:

@@ -66,7 +66,7 @@ Each resource CR references its Configuration via `spec.configurationRef`.
 | CR Kind | Keycloak verbs (from `verbsDescription`) | Addressing |
 |---|---|---|
 | `KeycloakRealm` | create `POST /admin/realms`; get/update/delete `…/realms/{realm}`; findby `GET /admin/realms` | natural key `realm`; `id` read-only in `status` |
-| `KeycloakClient` | findby `…/clients`; create `POST …/clients`; get/update/delete `…/clients/{id}` | `clientId` → `id` via findby; inline `protocolMappers` supported |
+| `KeycloakClient` | findby `…/clients`; create `POST …/clients`; get/update/delete `…/clients/{id}` | `clientId` → `id` via findby; inline `protocolMappers` supported; confidential secret from a Secret (`clientSecretRef`) |
 | `KeycloakProtocolMapper` | findby + CRUD on `…/client-scopes` or client mappers | `name` → UUID via findby; parent `clientUuid` |
 | `KeycloakClientScope` | findby + CRUD on `…/client-scopes/{id}` | `name` → UUID via findby |
 | `KeycloakGroup` | findby + CRUD on `…/groups/{id}` | `name` → UUID via findby |
@@ -77,11 +77,13 @@ Each resource CR references its Configuration via `spec.configurationRef`.
 | `KeycloakRequiredAction` | CRUD on `…/authentication/required-actions/{alias}` | natural key `alias`; base actions ship built-in (reconcile observes+updates) |
 | `KeycloakAuthenticationExecution` | delegated — see below | `(realm, flowAlias, provider \| alias)` |
 
-**Identity-provider client secret.** Put the IdP's client secret (e.g. a GitHub OAuth app's) in a
-Secret in the CR's own namespace and reference it with `spec.clientSecretRef: {name, key}`. The
-controller writes its value into `config.clientSecret` on create and update, so the secret never sits
+**Client secrets (`KeycloakClient`, `KeycloakIdentityProvider`).** Put a confidential client's secret, or an
+IdP's client secret (e.g. a GitHub OAuth app's), in a Secret in the CR's own namespace and reference it
+with `spec.clientSecretRef: {name, key}`. The controller writes its value into the client's `secret` /
+the IdP's `config.clientSecret` on create and update, so the secret never sits
 in the custom resource (verified live: the request carries it, the CR and the controller log never
-do). Never set `config.clientSecret` directly. Changing only the Secret's content is not detected as
+do). Never set `secret` / `config.clientSecret` directly; a client's plaintext `spec.secret` is
+deprecated, and when both are set the Secret's value wins. Changing only the Secret's content is not detected as
 drift: make any spec change, or recreate the CR, to push a rotated secret.
 
 For UUID-addressed kinds the RD declares `excludedSpecFields: [id]` and sources `{id}`

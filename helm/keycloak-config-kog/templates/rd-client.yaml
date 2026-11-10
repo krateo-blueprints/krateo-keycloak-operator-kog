@@ -29,25 +29,49 @@ spec:
       - action: findby
         method: GET
         path: /admin/realms/{realm}/clients
+      # A confidential client's SECRET is secret-sourced via RDC secretRef: the CR carries only
+      # clientSecretRef {name,key}, and the controller writes the Secret's value into `secret` on
+      # create and update, so it never sits in the CR spec (same contract as KeycloakUser and
+      # KeycloakIdentityProvider). Guarded on its own presence (resolver.when, oasgen >= 0.56.0):
+      # public clients need no Secret; a declared ref that cannot be read fails the request loudly.
       - action: create
         method: POST
         path: /admin/realms/{realm}/clients
+        fieldMapping:
+          - inBody: secret
+            inCustomResource: spec.clientSecretRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.clientSecretRef
+              secretRef:
+                nameFromCustomResource: spec.clientSecretRef.name
+                keyFromCustomResource: spec.clientSecretRef.key
       - action: get
         method: GET
         path: /admin/realms/{realm}/clients/{id}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: id
             inCustomResource: status.id
       - action: update
         method: PUT
         path: /admin/realms/{realm}/clients/{id}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: id
             inCustomResource: status.id
+          - inBody: secret
+            inCustomResource: spec.clientSecretRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.clientSecretRef
+              secretRef:
+                nameFromCustomResource: spec.clientSecretRef.name
+                keyFromCustomResource: spec.clientSecretRef.key
       - action: delete
         method: DELETE
         path: /admin/realms/{realm}/clients/{id}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: id
             inCustomResource: status.id
 {{- end }}

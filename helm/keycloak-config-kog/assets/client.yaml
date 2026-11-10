@@ -79,9 +79,12 @@ components:
         clientAuthenticatorType:
           type: string
           description: e.g. client-secret
+        clientSecretRef:
+          $ref: '#/components/schemas/SecretKeySelector'
         secret:
           type: string
-          description: Client secret (confidential clients).
+          description: DEPRECATED, plaintext in the custom resource. Use clientSecretRef instead; when
+            both are set, the Secret's value is what Keycloak receives.
         frontchannelLogout:
           type: boolean
         fullScopeAllowed:
@@ -123,6 +126,25 @@ components:
           type: object
           additionalProperties:
             type: string
+    SecretKeySelector:
+      type: object
+      description: The client secret of a confidential client, as a key in a Secret in the custom
+        resource's OWN namespace. The controller writes its value into `secret` on create and update;
+        the custom resource carries only this reference. Not a Keycloak field.
+      required:
+      - name
+      - key
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$'
+        key:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[-._a-zA-Z0-9]+$'
 paths:
   /admin/realms/{realm}/clients:
     post:

@@ -161,10 +161,21 @@ kubectl annotate keycloakuser alice krateo.io/connector-verbose-          # off
 
 Each request and response is then written to the log of that kind's controller
 (`<release>-<kind>-controller` in the release namespace), headers and body included.
-On the supported controller floor (oasgen-provider >= 0.56.0) the `Authorization` header
-and every secretRef-resolved value (passwords, OTP seeds) are written as `***REDACTED***`.
-Below oasgen-provider 0.26.1 the bearer token was dumped in cleartext, so do not enable it
-on an older install. Turn it off when you are done: the dump is per request and noisy.
+On the supported controller floor (oasgen-provider >= 0.56.0), **requests** are redacted: the
+`Authorization` header and every secretRef-resolved value (passwords, OTP seeds, client
+secrets) are written as `***REDACTED***`.
+
+**Responses are NOT redacted: they are dumped verbatim.** Keycloak's admin API returns some
+secrets in its responses. Measured on 0.56.0: with verbose on a `KeycloakClient`, the findby
+response (`GET …/clients`, the realm's whole client list) wrote the client secret of every
+confidential client in the realm into the controller log. **Never enable verbose on
+`KeycloakClient`** in a cluster whose logs anyone else can read, and treat any log captured
+with it as containing those secrets. `KeycloakUser` and `KeycloakIdentityProvider` responses
+were checked and do not carry their secrets: Keycloak never returns passwords and masks an
+IdP's clientSecret as `**********`.
+
+Below oasgen-provider 0.26.1 even the request bearer token was dumped in cleartext, so do not
+enable it on an older install. Turn it off when you are done: the dump is per request and noisy.
 
 Before 0.4.7 this chart had a `verbose` value that put the annotation on each
 `RestDefinition`. Nothing reads it there, so it never had any effect, and it was removed

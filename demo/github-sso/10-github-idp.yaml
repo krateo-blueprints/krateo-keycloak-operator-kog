@@ -60,7 +60,7 @@ spec:
       - member
 ---
 # HOP-1 authorization — the new KeycloakIdentityProviderMapper resource.
-# `hardcoded-group-idp-mapper` puts EVERY GitHub-brokered user into
+# `oidc-hardcoded-group-idp-mapper` puts EVERY GitHub-brokered user into
 # /os-project-demo, so they land in the OpenStack `demo` project. Fully
 # declarative; no console clicks.
 apiVersion: keycloak.ogen.krateo.io/v1
@@ -78,7 +78,9 @@ spec:
   # identityProviderAlias must ALSO be set (body field); Keycloak returns a
   # misleading 409 "Duplicate resource" if it is omitted. Same value as alias.
   identityProviderAlias: github
-  identityProviderMapper: hardcoded-group-idp-mapper
+  # Keycloak 26 registers this mapper as oidc-hardcoded-group-idp-mapper (valid for the github
+  # provider too). `hardcoded-group-idp-mapper` is ACCEPTED at creation and NPEs at every login.
+  identityProviderMapper: oidc-hardcoded-group-idp-mapper
   config:
     group: "/os-project-demo"
     syncMode: "INHERIT"
