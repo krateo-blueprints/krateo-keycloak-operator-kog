@@ -55,7 +55,7 @@ choice). Log in with GitHub → you're a `krateo`-realm user in `os-project-demo
 
 ## Authorization: default group vs. per-team
 
-This demo uses the simplest, fully-declarative option: **`hardcoded-group-idp-mapper`
+This demo uses the simplest, fully-declarative option: **`oidc-hardcoded-group-idp-mapper`
 → every GitHub user lands in `os-project-demo`** (one shared OpenStack project).
 
 For **per-team → per-project** mapping you'd add more `KeycloakIdentityProviderMapper`
