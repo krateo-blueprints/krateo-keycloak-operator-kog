@@ -6,7 +6,7 @@
 docs/index.md: the map — what the blueprint is + links to the whole bundle and the repo layout
 docs/overview.md: KOG mechanics, resources exposed, the two design decisions, the delegated authentication-execution surface
 docs/usage.md: install via Helm or as a Krateo Composition, wire the ESO admin token, apply the sample CRs, verify reconcile
-docs/configuration.md: the whole values surface — keycloak target, auth/ESO, restDefinitions, snowplow delegation, resourceGroup/verbose
+docs/configuration.md: the whole values surface — keycloak target, auth/ESO, restDefinitions, snowplow delegation, resourceGroup, per-resource verbose debugging
 docs/api.md: the CompositionDefinition CRD, the KeycloakConfigKog Composition kind, and the generated Keycloak resource kinds
 docs/examples.md: index of the runnable examples
 docs/release.md: how a release ships — a SemVer tag publishes the chart to GHCR OCI

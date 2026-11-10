@@ -65,8 +65,9 @@ Or install as a Krateo Composition (`compositiondefinition.yaml` +
 Everything is `chart/values.yaml`, typed by `chart/values.schema.json`. The top-level
 keys are `keycloak` (the target `baseUrl`), `auth` (the ESO-minted admin token),
 `restDefinitions` (which resource CRDs to emit — each `enabled` by default),
-`snowplow` (delegation for `KeycloakAuthenticationExecution`), `resourceGroup`, and
-`verbose`. The full surface is documented in
+`snowplow` (delegation for `KeycloakAuthenticationExecution`), and `resourceGroup`.
+To debug one resource, annotate it with `krateo.io/connector-verbose: "true"`. The full
+surface is documented in
 [docs/configuration.md](docs/configuration.md).
 
 ## Examples

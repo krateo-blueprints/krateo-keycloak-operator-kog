@@ -5,10 +5,6 @@ metadata:
   name: {{ .Release.Name }}-realm
   labels:
     {{- include "keycloak-config-kog.labels" . | nindent 4 }}
-  {{- if .Values.verbose }}
-  annotations:
-    krateo.io/connector-verbose: "true"
-  {{- end }}
 spec:
   oasPath: configmap://{{ .Release.Namespace }}/{{ .Release.Name }}-realm/realm.yaml
   resourceGroup: {{ .Values.resourceGroup }}

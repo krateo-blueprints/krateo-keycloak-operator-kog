@@ -103,6 +103,3 @@ snowplow:
 
 # Kubernetes API group the generated CRDs register under. GVK = <group>/v1alpha1.
 resourceGroup: keycloak.ogen.krateo.io
-
-# verbose logging on the generated connectors (annotation krateo.io/connector-verbose)
-verbose: false

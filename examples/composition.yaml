@@ -33,4 +33,3 @@ spec:
       enabled: true
     identityprovider:
       enabled: true
-  verbose: false
