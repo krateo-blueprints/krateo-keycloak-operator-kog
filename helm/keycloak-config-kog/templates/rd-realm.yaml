@@ -23,25 +23,92 @@ spec:
       - action: create
         method: POST
         path: /admin/realms
+        fieldMapping:
+          # The SMTP credentials are secret-sourced via RDC secretRef: the CR carries only
+          # smtpCredentialsRef {name,userKey,passwordKey?,clientSecretKey?}, and the controller writes the
+          # Secret's values into smtpServer.user, .password (authType basic) and .authTokenClientSecret
+          # (authType token) on create and update. Each mapping is guarded on its own key (`resolver.when`):
+          # a realm without mail needs no Secret, each mode reads only its own key, and a declared key that
+          # cannot be read fails the request loudly instead of saving the realm without credentials.
+          - inBody: smtpServer.user
+            inCustomResource: spec.smtpCredentialsRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.smtpCredentialsRef
+              secretRef:
+                nameFromCustomResource: spec.smtpCredentialsRef.name
+                keyFromCustomResource: spec.smtpCredentialsRef.userKey
+          - inBody: smtpServer.password
+            inCustomResource: spec.smtpCredentialsRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.smtpCredentialsRef.passwordKey
+              secretRef:
+                nameFromCustomResource: spec.smtpCredentialsRef.name
+                keyFromCustomResource: spec.smtpCredentialsRef.passwordKey
+          - inBody: smtpServer.authTokenClientSecret
+            inCustomResource: spec.smtpCredentialsRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.smtpCredentialsRef.clientSecretKey
+              secretRef:
+                nameFromCustomResource: spec.smtpCredentialsRef.name
+                keyFromCustomResource: spec.smtpCredentialsRef.clientSecretKey
       - action: findby
         method: GET
         path: /admin/realms
       - action: get
         method: GET
         path: /admin/realms/{realm}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: realm
             inCustomResource: spec.realm
       - action: update
         method: PUT
         path: /admin/realms/{realm}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: realm
             inCustomResource: spec.realm
+          # The SMTP credentials are secret-sourced via RDC secretRef: the CR carries only
+          # smtpCredentialsRef {name,userKey,passwordKey?,clientSecretKey?}, and the controller writes the
+          # Secret's values into smtpServer.user, .password (authType basic) and .authTokenClientSecret
+          # (authType token) on create and update. Each mapping is guarded on its own key (`resolver.when`):
+          # a realm without mail needs no Secret, each mode reads only its own key, and a declared key that
+          # cannot be read fails the request loudly instead of saving the realm without credentials.
+          - inBody: smtpServer.user
+            inCustomResource: spec.smtpCredentialsRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.smtpCredentialsRef
+              secretRef:
+                nameFromCustomResource: spec.smtpCredentialsRef.name
+                keyFromCustomResource: spec.smtpCredentialsRef.userKey
+          - inBody: smtpServer.password
+            inCustomResource: spec.smtpCredentialsRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.smtpCredentialsRef.passwordKey
+              secretRef:
+                nameFromCustomResource: spec.smtpCredentialsRef.name
+                keyFromCustomResource: spec.smtpCredentialsRef.passwordKey
+          - inBody: smtpServer.authTokenClientSecret
+            inCustomResource: spec.smtpCredentialsRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.smtpCredentialsRef.clientSecretKey
+              secretRef:
+                nameFromCustomResource: spec.smtpCredentialsRef.name
+                keyFromCustomResource: spec.smtpCredentialsRef.clientSecretKey
       - action: delete
         method: DELETE
         path: /admin/realms/{realm}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: realm
             inCustomResource: spec.realm
 {{- end }}

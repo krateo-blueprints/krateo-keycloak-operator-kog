@@ -17,6 +17,37 @@ components:
       scheme: bearer
       description: Keycloak admin access token (OAuth2 Bearer).
   schemas:
+    SmtpCredentialsRef:
+      type: object
+      description: The SMTP credentials, as keys of ONE Secret in the custom resource's OWN namespace.
+        The controller writes userKey into smtpServer.user (the SMTP/SASL user, both modes), passwordKey
+        into smtpServer.password (authType basic) and clientSecretKey into
+        smtpServer.authTokenClientSecret (authType token) on create and update; each key is sent only
+        when declared. The custom resource carries only this reference. Not a Keycloak field.
+      required:
+      - name
+      - userKey
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$'
+        userKey:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[-._a-zA-Z0-9]+$'
+        passwordKey:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[-._a-zA-Z0-9]+$'
+        clientSecretKey:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[-._a-zA-Z0-9]+$'
     RealmRepresentation:
       type: object
       required:
@@ -41,6 +72,104 @@ components:
         registrationAllowed:
           type: boolean
         resetPasswordAllowed:
+          type: boolean
+        verifyEmail:
+          type: boolean
+          description: Require users to verify their email address (the VERIFY_EMAIL required action at first login).
+        actionTokenGeneratedByAdminLifespan:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Lifetime in seconds of action links an administrator sends (execute-actions email,
+            e.g. the set-password link of a new account). Keycloak's default is 43200 (12 hours).
+        actionTokenGeneratedByUserLifespan:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Lifetime in seconds of action links a user triggers (e.g. forgot password).
+        smtpServer:
+          type: object
+          description: Outgoing mail server for this realm (set-password, verify-email and forgot-password
+            emails). All values are strings, as Keycloak stores them. The SMTP user and password are NOT
+            set here; reference them with smtpCredentialsRef so they never sit in the custom resource.
+          additionalProperties: false
+          properties:
+            host:
+              type: string
+              minLength: 1
+            port:
+              type: string
+              pattern: '^[0-9]{1,5}$'
+            from:
+              type: string
+              minLength: 3
+              description: Envelope and header From address.
+            fromDisplayName:
+              type: string
+            replyTo:
+              type: string
+            replyToDisplayName:
+              type: string
+            envelopeFrom:
+              type: string
+            auth:
+              type: string
+              enum:
+              - "true"
+              - "false"
+              description: '"true" to authenticate (both authType modes need it).'
+            authType:
+              type: string
+              enum:
+              - basic
+              - token
+              description: 'basic (default): SMTP AUTH with the password from smtpCredentialsRef.passwordKey.
+                token: XOAUTH2 (Keycloak >= 26.2) with an OAuth2 client-credentials access token
+                fetched from authTokenUrl, the client secret from smtpCredentialsRef.clientSecretKey.
+                Required by providers that disable password SMTP AUTH (e.g. Microsoft 365).'
+            authTokenUrl:
+              type: string
+              description: Token endpoint for authType token, e.g.
+                https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token
+            authTokenClientId:
+              type: string
+              description: OAuth2 client id for authType token (not secret).
+            authTokenScope:
+              type: string
+              description: OAuth2 scope for authType token, e.g. https://outlook.office365.com/.default
+            starttls:
+              type: string
+              enum:
+              - "true"
+              - "false"
+            ssl:
+              type: string
+              enum:
+              - "true"
+              - "false"
+        smtpCredentialsRef:
+          $ref: '#/components/schemas/SmtpCredentialsRef'
+        eventsEnabled:
+          type: boolean
+          description: Store user events (login, SEND_EXECUTE_ACTIONS, SEND_ERROR, ...).
+        enabledEventTypes:
+          type: array
+          description: The user event types to store, e.g. SEND_EXECUTE_ACTIONS and SEND_ERROR.
+          items:
+            type: string
+        eventsListeners:
+          type: array
+          description: Event listener providers, e.g. jboss-logging (events in the server log).
+          items:
+            type: string
+        eventsExpiration:
+          type: integer
+          format: int64
+          minimum: 1
+          description: How long stored user events are kept, in seconds.
+        adminEventsEnabled:
+          type: boolean
+        adminEventsDetailsEnabled:
           type: boolean
         rememberMe:
           type: boolean
