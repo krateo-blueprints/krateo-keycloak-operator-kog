@@ -81,6 +81,18 @@ jobs:
             --set auth.bootstrap=null --set executionIdentity=null > /dev/null
           echo "renders with auth.bootstrap and executionIdentity absent"
 
+      # Gating. core-provider turns values.schema.json into the Composition CRD, so a `required` key
+      # becomes mandatory on every Composition CR, while values.yaml defaults only apply at render,
+      # after admission. Requiring a defaulted key therefore enforces nothing and makes any CR that
+      # omits it uncreatable; on demo, the keycloak chart's root `required` froze all 108 components
+      # of the platform umbrella, and this chart required `keycloak.baseUrl` the same way. The gate
+      # self-tests its detector on a mutant and a control before judging the real schema.
+      - name: Gate values.schema.json (no `required` key that values.yaml defaults)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          python3 hack/check-schema-required.py
+
       - name: helm template + lint every chart (informational)
         run: |
           set -uo pipefail

@@ -3,17 +3,11 @@
   "type": "object",
   "title": "Keycloak Config KOG",
   "description": "Krateo Operator Generator (KOG) that exposes Keycloak Admin API resources (realm, client, protocol-mapper, client-scope, group, identity-provider) as native Kubernetes custom resources. oasgen-provider + rest-dynamic-controller reconcile each CR against a running Keycloak Admin REST API; the admin bearer token is delivered and rotated into a Secret by the External Secrets Operator.",
-  "required": [
-    "keycloak"
-  ],
   "properties": {
     "keycloak": {
       "type": "object",
       "title": "Keycloak target",
       "description": "Connection to the Keycloak server the generated controllers call.",
-      "required": [
-        "baseUrl"
-      ],
       "properties": {
         "baseUrl": {
           "type": "string",
