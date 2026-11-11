@@ -23,25 +23,72 @@ spec:
       - action: create
         method: POST
         path: /admin/realms
+        fieldMapping:
+          # The SMTP user and password are secret-sourced via RDC secretRef: the CR carries only
+          # smtpCredentialsRef {name,userKey,passwordKey}, and the controller writes the two Secret values
+          # into smtpServer.user / smtpServer.password on create and update. Guarded on the ref's presence
+          # (`resolver.when`): a realm without outgoing mail needs no Secret, while a declared ref that
+          # cannot be read fails the request loudly instead of saving the realm without credentials.
+          - inBody: smtpServer.user
+            inCustomResource: spec.smtpCredentialsRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.smtpCredentialsRef
+              secretRef:
+                nameFromCustomResource: spec.smtpCredentialsRef.name
+                keyFromCustomResource: spec.smtpCredentialsRef.userKey
+          - inBody: smtpServer.password
+            inCustomResource: spec.smtpCredentialsRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.smtpCredentialsRef
+              secretRef:
+                nameFromCustomResource: spec.smtpCredentialsRef.name
+                keyFromCustomResource: spec.smtpCredentialsRef.passwordKey
       - action: findby
         method: GET
         path: /admin/realms
       - action: get
         method: GET
         path: /admin/realms/{realm}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: realm
             inCustomResource: spec.realm
       - action: update
         method: PUT
         path: /admin/realms/{realm}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: realm
             inCustomResource: spec.realm
+          # The SMTP user and password are secret-sourced via RDC secretRef: the CR carries only
+          # smtpCredentialsRef {name,userKey,passwordKey}, and the controller writes the two Secret values
+          # into smtpServer.user / smtpServer.password on create and update. Guarded on the ref's presence
+          # (`resolver.when`): a realm without outgoing mail needs no Secret, while a declared ref that
+          # cannot be read fails the request loudly instead of saving the realm without credentials.
+          - inBody: smtpServer.user
+            inCustomResource: spec.smtpCredentialsRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.smtpCredentialsRef
+              secretRef:
+                nameFromCustomResource: spec.smtpCredentialsRef.name
+                keyFromCustomResource: spec.smtpCredentialsRef.userKey
+          - inBody: smtpServer.password
+            inCustomResource: spec.smtpCredentialsRef
+            resolver:
+              type: secretRef
+              when:
+                customResourceFieldPresent: spec.smtpCredentialsRef
+              secretRef:
+                nameFromCustomResource: spec.smtpCredentialsRef.name
+                keyFromCustomResource: spec.smtpCredentialsRef.passwordKey
       - action: delete
         method: DELETE
         path: /admin/realms/{realm}
-        requestFieldMapping:
+        fieldMapping:
           - inPath: realm
             inCustomResource: spec.realm
 {{- end }}
