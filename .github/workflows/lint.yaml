@@ -43,6 +43,17 @@ jobs:
           helm template release helm/keycloak-config-kog > "$RUNNER_TEMP/rendered.yaml"
           python3 hack/validate-chart.py helm/keycloak-config-kog "$RUNNER_TEMP/rendered.yaml" .
 
+      # Gating. A release upgraded with `helm upgrade --reuse-values` keeps its OLD values, so keys added
+      # since that release are ABSENT (nil), not defaulted. Templates must tolerate that: 0.5.0 crashed
+      # with a nil pointer on .Values.auth.bootstrap.enabled for exactly this upgrade. Nulling the keys
+      # added since 0.4.x reproduces that shape; the render must still succeed.
+      - name: Render with keys added since 0.4.x absent (helm upgrade --reuse-values shape)
+        run: |
+          set -euo pipefail
+          helm template release helm/keycloak-config-kog \
+            --set auth.bootstrap=null --set executionIdentity=null > /dev/null
+          echo "renders with auth.bootstrap and executionIdentity absent"
+
       - name: helm template + lint every chart (informational)
         run: |
           set -uo pipefail

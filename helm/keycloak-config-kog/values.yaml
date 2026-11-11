@@ -116,6 +116,22 @@ snowplow:
   # supply this Secret yourself.
   endpointSecretName: keycloak-admin-endpoint
 
+# ---------------------------------------------------------------------------
+# Identity + RBAC for the KeycloakAuthenticationExecution path (rendered only when
+# restDefinitions.authenticationexecution is enabled). The execution controller authenticates to
+# snowplow through authn, so the chart renders its authn ServiceAccount allowlist CR (requires the
+# authn CRDs) and least-privilege Roles: the identity may get ONLY this chart's four RESTActions,
+# and snowplow may get ONLY the Endpoint Secret.
+# ---------------------------------------------------------------------------
+executionIdentity:
+  enabled: true
+  # authn group the controller's identity joins; the RESTAction Role is bound to it.
+  group: "krateo:rdc"
+  # snowplow's ServiceAccount (namespace defaults to the release namespace).
+  snowplowServiceAccount:
+    name: snowplow
+    namespace: ""
+
 # Kubernetes API group the generated CRDs register under. Resource kinds are <group>/v1 (each OAS
 # asset's info.version); their <Kind>Configuration companions are <group>/v1alpha1.
 resourceGroup: keycloak.ogen.krateo.io

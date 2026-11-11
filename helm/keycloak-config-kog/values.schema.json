@@ -356,6 +356,40 @@
       "title": "Resource group",
       "description": "Kubernetes API group the generated CRDs register under. GVK = <group>/v1alpha1.",
       "default": "keycloak.ogen.krateo.io"
+    },
+    "executionIdentity": {
+      "type": "object",
+      "title": "Execution identity",
+      "description": "Identity and least-privilege RBAC for the KeycloakAuthenticationExecution path: the authn ServiceAccount allowlist CR for its controller, get on only this chart's RESTActions, and get on only the Endpoint Secret for snowplow. Rendered only when restDefinitions.authenticationexecution is enabled. Requires the authn CRDs.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Enabled",
+          "default": true,
+          "description": "Render the identity and RBAC objects."
+        },
+        "group": {
+          "type": "string",
+          "title": "authn group",
+          "default": "krateo:rdc",
+          "description": "Group the controller's authn identity joins; the RESTAction Role is bound to it."
+        },
+        "snowplowServiceAccount": {
+          "type": "object",
+          "title": "snowplow ServiceAccount",
+          "properties": {
+            "name": {
+              "type": "string",
+              "default": "snowplow",
+              "description": "snowplow's ServiceAccount name."
+            },
+            "namespace": {
+              "type": "string",
+              "description": "snowplow's namespace; empty means the release namespace."
+            }
+          }
+        }
+      }
     }
   }
 }
