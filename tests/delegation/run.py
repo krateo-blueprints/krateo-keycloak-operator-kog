@@ -31,7 +31,7 @@ import json, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
-CHART = os.path.join(REPO, "chart")
+CHART = os.path.join(REPO, "helm", "keycloak-config-kog")
 FIXTURES = os.path.join(HERE, "fixtures")
 
 try:

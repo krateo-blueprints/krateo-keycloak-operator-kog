@@ -2,7 +2,7 @@
 
 `KeycloakAuthenticationExecution` delegates its four lifecycle verbs to Snowplow
 `RESTAction`s (`observeApiRef`/`createApiRef`/`updateApiRef`/`deleteApiRef`, see
-`chart/templates/restactions-authenticationexecution.yaml`). The behaviour of
+`helm/keycloak-config-kog/templates/restactions-authenticationexecution.yaml`). The behaviour of
 that delegation lives entirely in **jq programs** — the observe `filter`, the
 `notFoundExpr`/`upToDateExpr` predicates, and the per-stage `dependsOn.iterator`
 fan-outs.
@@ -33,5 +33,5 @@ python3 tests/delegation/run.py     # needs helm, jq, python3 + pyyaml
 Fully offline — **no Keycloak, no cluster**. The complementary
 `hack/validate-executions-live.sh` replays the same extracted programs against a
 **real Keycloak** (still not an in-cluster reconcile through oasgen+rdc+snowplow,
-which is a separately-gated live step). Wired into CI via
-`.github/workflows/chart-tests.yaml`.
+which is a separately-gated live step). Wired into CI as the gating `test` job of
+`.github/workflows/lint.yaml` (every pull request and every push to `main`).
