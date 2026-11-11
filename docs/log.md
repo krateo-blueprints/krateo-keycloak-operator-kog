@@ -11,6 +11,22 @@ timestamp: 2026-08-11T00:00:00Z
 
 Curated history; release notes live in GitHub Releases.
 
+## 2026-11-11 — 0.6.0: realm mail (password and XOAUTH2), events and action-link lifetimes
+
+`KeycloakRealm` gains `smtpServer` (password or token authentication), the user-event settings, the
+action-token lifespans and `verifyEmail`, for an access-request flow where an administrator approves a
+request and Keycloak emails the new user a set-password link. SMTP credentials are Secret-sourced
+(`smtpCredentialsRef`: the user, and the password or the OAuth2 client secret) and never stored in the
+CR. Validated live on disposable GKE clusters against the shipped stack (keycloak-operator 0.2.4,
+keycloak 0.2.5 on CloudNativePG, Keycloak 26.6.3) on rest-dynamic-controller 0.56.0 and 0.59.0, with
+Keycloak admin events as the oracle for every write: a real set-password email delivered through
+SMTP AUTH (password) and through `AUTH XOAUTH2` (token, against a stub that accepts only the token it
+issued); the masked secret is never compared and an idle realm is never re-PUT; a masked value echoed
+back never overwrites the stored one; wrong credentials fail the send with HTTP 500. Two findings went
+into the docs and upstream: Keycloak stores no `SEND_EXECUTE_ACTIONS`/`SEND_ERROR` events for an
+admin-triggered email, and an in-place change of a referenced Secret never reaches the vendor
+(rotate by repointing to a new Secret; oasgen-provider#598).
+
 ## 2026-08-11 — Documentation Standard adoption
 
 The repo adopts the Krateo Documentation Standard (OKF): the invariant docs bundle

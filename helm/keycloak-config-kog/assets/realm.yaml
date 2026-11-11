@@ -19,14 +19,14 @@ components:
   schemas:
     SmtpCredentialsRef:
       type: object
-      description: The SMTP user and password, as two keys of ONE Secret in the custom resource's OWN
-        namespace. The controller writes them into smtpServer.user and smtpServer.password on create
-        and update; the custom resource carries only this reference. Keycloak returns the password
-        masked, so it is never compared. Not a Keycloak field.
+      description: The SMTP credentials, as keys of ONE Secret in the custom resource's OWN namespace.
+        The controller writes userKey into smtpServer.user (the SMTP/SASL user, both modes), passwordKey
+        into smtpServer.password (authType basic) and clientSecretKey into
+        smtpServer.authTokenClientSecret (authType token) on create and update; each key is sent only
+        when declared. The custom resource carries only this reference. Not a Keycloak field.
       required:
       - name
       - userKey
-      - passwordKey
       properties:
         name:
           type: string
@@ -39,6 +39,11 @@ components:
           maxLength: 253
           pattern: '^[-._a-zA-Z0-9]+$'
         passwordKey:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^[-._a-zA-Z0-9]+$'
+        clientSecretKey:
           type: string
           minLength: 1
           maxLength: 253
@@ -112,7 +117,26 @@ components:
               enum:
               - "true"
               - "false"
-              description: '"true" to authenticate with the credentials from smtpCredentialsRef.'
+              description: '"true" to authenticate (both authType modes need it).'
+            authType:
+              type: string
+              enum:
+              - basic
+              - token
+              description: 'basic (default): SMTP AUTH with the password from smtpCredentialsRef.passwordKey.
+                token: XOAUTH2 (Keycloak >= 26.2) with an OAuth2 client-credentials access token
+                fetched from authTokenUrl, the client secret from smtpCredentialsRef.clientSecretKey.
+                Required by providers that disable password SMTP AUTH (e.g. Microsoft 365).'
+            authTokenUrl:
+              type: string
+              description: Token endpoint for authType token, e.g.
+                https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token
+            authTokenClientId:
+              type: string
+              description: OAuth2 client id for authType token (not secret).
+            authTokenScope:
+              type: string
+              description: OAuth2 scope for authType token, e.g. https://outlook.office365.com/.default
             starttls:
               type: string
               enum:
