@@ -22,9 +22,11 @@ annotations:
   krateo.io/display-name: Keycloak Config KOG
   krateo.io/maturity: beta
   krateoSupportedVersion: ">= 2.5.1"
+# Helm's `sources` is the source code of THIS chart, and release tooling resolves the chart version
+# as a tag in each listed repo. The Keycloak OpenAPI document (an input, vendored under assets/) and
+# oasgen-provider (the generator that reads it) are not this chart's source: listing oasgen-provider
+# made installer's pin-ci resolve "0.5.1" to an unrelated ancient oasgen-provider tag.
 sources:
   - https://github.com/krateo-blueprints/krateo-keycloak-operator-kog
-  - https://www.keycloak.org/docs-api/latest/rest-api/openapi.yaml
-  - https://github.com/krateo-platformops/oasgen-provider
 maintainers:
   - name: krateo

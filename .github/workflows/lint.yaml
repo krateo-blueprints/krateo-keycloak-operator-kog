@@ -18,6 +18,33 @@ jobs:
   lint-docs:
     uses: krateo-platformops/.github/.github/workflows/lint-docs.yaml@main
 
+  # Gating, and the check-run that release consumers (installer's pin-ci) look for: the chart's own
+  # test suite, run on every PR and on every commit that reaches main, so each release tag sits on a
+  # commit whose tests ran. tests/delegation proves, offline, the jq programs that
+  # KeycloakAuthenticationExecution delegates its four lifecycle verbs to: it renders the chart and
+  # evaluates the EXACT shipped programs against fixture payloads. Exits 1 on any failed assertion,
+  # and on a render failure.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5
+
+      - name: Stamp the CHART_VERSION placeholder for CI
+        run: |
+          find . -type f -name Chart.yaml -not -path '*/charts/*' -not -path './.git/*' \
+            -exec sed -i "s/CHART_VERSION/0.0.0-ci/g" {} +
+
+      - name: Delegation wiring tests (tests/delegation)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          jq --version
+          python3 tests/delegation/run.py
+
   lint:
     runs-on: ubuntu-latest
     steps:
