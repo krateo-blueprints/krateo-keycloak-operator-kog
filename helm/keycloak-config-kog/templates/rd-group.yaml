@@ -1,4 +1,5 @@
-{{- if .Values.restDefinitions.group.enabled }}
+{{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
+{{- if $kogRD.group.enabled }}
 apiVersion: ogen.krateo.io/v1alpha1
 kind: RestDefinition
 metadata:
@@ -9,7 +10,7 @@ spec:
   oasPath: configmap://{{ .Release.Namespace }}/{{ .Release.Name }}-group/group.yaml
   resourceGroup: {{ .Values.resourceGroup }}
   resource:
-    kind: {{ .Values.restDefinitions.group.kind }}
+    kind: {{ $kogRD.group.kind }}
     # Top-level realm group. `name` natural key; UUID {id} resolved via findby.
     # `realmRoles`/`clientRoles` carry the role assignments that the Keystone
     # mapping later turns into OpenStack project/role grants.

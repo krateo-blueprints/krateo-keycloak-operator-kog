@@ -1,4 +1,5 @@
-{{- if .Values.restDefinitions.clientscope.enabled }}
+{{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
+{{- if $kogRD.clientscope.enabled }}
 apiVersion: ogen.krateo.io/v1alpha1
 kind: RestDefinition
 metadata:
@@ -9,7 +10,7 @@ spec:
   oasPath: configmap://{{ .Release.Namespace }}/{{ .Release.Name }}-clientscope/clientscope.yaml
   resourceGroup: {{ .Values.resourceGroup }}
   resource:
-    kind: {{ .Values.restDefinitions.clientscope.kind }}
+    kind: {{ $kogRD.clientscope.kind }}
     # `name` natural key; server-generated UUID {id} resolved via findby and
     # excluded from spec. {realm} parent path param auto-surfaces as a spec field.
     identifiers:

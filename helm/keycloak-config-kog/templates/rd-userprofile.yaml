@@ -1,4 +1,5 @@
-{{- if .Values.restDefinitions.userprofile.enabled }}
+{{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
+{{- if $kogRD.userprofile.enabled }}
 apiVersion: ogen.krateo.io/v1alpha1
 kind: RestDefinition
 metadata:
@@ -9,7 +10,7 @@ spec:
   oasPath: configmap://{{ .Release.Namespace }}/{{ .Release.Name }}-userprofile/userprofile.yaml
   resourceGroup: {{ .Values.resourceGroup }}
   resource:
-    kind: {{ .Values.restDefinitions.userprofile.kind }}
+    kind: {{ $kogRD.userprofile.kind }}
     # A realm's declarative user profile: one document per realm that always exists. No create
     # and no delete verb, so the kind adopts the realm's profile and replaces it (PUT) whenever
     # the CR differs. Deleting the CR leaves the realm's profile as it is. Parent scope: {realm},

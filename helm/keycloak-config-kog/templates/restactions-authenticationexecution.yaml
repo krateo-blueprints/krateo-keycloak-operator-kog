@@ -1,4 +1,5 @@
-{{- if .Values.restDefinitions.authenticationexecution.enabled }}
+{{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
+{{- if $kogRD.authenticationexecution.enabled }}
 {{- /*
 Snowplow RESTActions backing the KeycloakAuthenticationExecution RestDefinition
 (observeApiRef/createApiRef/updateApiRef/deleteApiRef - see rd-authenticationexecution.yaml).

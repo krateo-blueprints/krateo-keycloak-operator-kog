@@ -1,4 +1,5 @@
-{{- if .Values.restDefinitions.identityprovider.enabled }}
+{{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
+{{- if $kogRD.identityprovider.enabled }}
 apiVersion: ogen.krateo.io/v1alpha1
 kind: RestDefinition
 metadata:
@@ -9,7 +10,7 @@ spec:
   oasPath: configmap://{{ .Release.Namespace }}/{{ .Release.Name }}-identityprovider/identityprovider.yaml
   resourceGroup: {{ .Values.resourceGroup }}
   resource:
-    kind: {{ .Values.restDefinitions.identityprovider.kind }}
+    kind: {{ $kogRD.identityprovider.kind }}
     # `alias` is a user-supplied immutable natural key addressable directly
     # (no server-generated UUID in the path); `internalId` is read-only.
     # Parent scope: {realm}.

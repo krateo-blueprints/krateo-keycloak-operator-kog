@@ -11,6 +11,18 @@ timestamp: 2026-08-11T00:00:00Z
 
 Curated history; release notes live in GitHub Releases.
 
+## 2026-11-12 — 0.7.3: upgrades with `helm upgrade --reuse-values` from 0.6.0 work
+
+`helm upgrade --reuse-values` from 0.6.0 to 0.7.0, 0.7.1 or 0.7.2 failed: `nil pointer evaluating
+interface {}.enabled` on `restDefinitions.userprofile`. Reuse-values upgrades with the previous
+release's values, which have no `userprofile`, and does not apply the new chart's values.yaml defaults
+(measured on GKE, and with a server-side dry-run against a 0.6.0 release). Every template now reads
+`restDefinitions` through one helper that merges the chart's defaults under the supplied values. The
+defaults are in `files/restDefinitions.defaults.yaml`, because Helm does not expose values.yaml through
+`.Files`; CI keeps that file equal to values.yaml's `restDefinitions`. A fresh install renders
+byte-identically to 0.7.2. CI gate `hack/check-reuse-values.py` renders the chart under the values of
+0.6.0, 0.7.0, 0.7.1 and 0.7.2 and requires the same objects as a default render.
+
 ## 2026-11-12 — 0.7.2: restDefinitions.user is declared in the schema
 
 `values.schema.json` never declared `restDefinitions.user` (missing from 0.6.0 to 0.7.1) although

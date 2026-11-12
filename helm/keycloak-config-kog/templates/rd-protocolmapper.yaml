@@ -1,4 +1,5 @@
-{{- if .Values.restDefinitions.protocolmapper.enabled }}
+{{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
+{{- if $kogRD.protocolmapper.enabled }}
 apiVersion: ogen.krateo.io/v1alpha1
 kind: RestDefinition
 metadata:
@@ -9,7 +10,7 @@ spec:
   oasPath: configmap://{{ .Release.Namespace }}/{{ .Release.Name }}-protocolmapper/protocolmapper.yaml
   resourceGroup: {{ .Values.resourceGroup }}
   resource:
-    kind: {{ .Values.restDefinitions.protocolmapper.kind }}
+    kind: {{ $kogRD.protocolmapper.kind }}
     # Client-scoped protocol mapper. `name` is the natural key; the UUID {id} is
     # resolved via findby. Two parent scopes: {realm} and the owning client UUID.
     # `name` natural key; UUID {id} resolved via findby + excluded from spec.
