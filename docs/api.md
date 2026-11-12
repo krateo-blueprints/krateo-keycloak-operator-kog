@@ -34,7 +34,7 @@ spec:
 
 | field | type | meaning |
 |---|---|---|
-| `spec.chart.url` | string | OCI reference of the published chart. `release-chart.yaml` pushes to `oci://ghcr.io/<owner>/charts/keycloak-config-kog`. |
+| `spec.chart.url` | string | OCI reference of the published chart. `release-tag.yaml` pushes to `oci://ghcr.io/krateo-blueprints/charts/keycloak-config-kog` and stamps this to the tag. |
 | `spec.chart.version` | string | the published chart version this definition installs. Bump it to the released chart version on `main` after publishing. |
 
 Applying this `CompositionDefinition` makes core-provider derive, from the chart's
@@ -75,6 +75,7 @@ Each resource CR references its Configuration via `spec.configurationRef`.
 | `KeycloakIdentityProviderMapper` | findby + CRUD on IdP mappers | `name` → UUID via findby; needs both `alias` (path) **and** `identityProviderAlias` (body) |
 | `KeycloakAuthenticationFlow` | findby + CRUD on `…/authentication/flows` | `alias` → UUID via findby |
 | `KeycloakRequiredAction` | CRUD on `…/authentication/required-actions/{alias}` | natural key `alias`; base actions ship built-in (reconcile observes+updates) |
+| `KeycloakUserProfile` | GET + PUT on `…/users/profile` (0.7.0) | one per realm, no identifiers: adopts the realm's profile and replaces it whole; no create, no delete |
 | `KeycloakAuthenticationExecution` | delegated — see below | `(realm, flowAlias, provider \| alias)` |
 
 **Client secrets (`KeycloakClient`, `KeycloakIdentityProvider`).** Put a confidential client's secret, or an

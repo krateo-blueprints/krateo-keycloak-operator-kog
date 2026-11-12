@@ -1,0 +1,243 @@
+openapi: 3.0.3
+info:
+  title: Keycloak Admin API - User Profile (KOG subset)
+  version: v1
+  description: |
+    Hand-curated OpenAPI 3.0 subset of the Keycloak Admin REST API for a realm's declarative user
+    profile (UPConfig), sufficient to manage it through the Krateo Operator Generator (KOG).
+
+    The user profile is ONE document per realm. It always exists (a new realm starts with Keycloak's
+    default profile), so it is never created or deleted: the kind adopts the realm's profile and
+    replaces it with the CR's on update (PUT). The CR therefore owns the WHOLE profile, and must list
+    every attribute the realm keeps, the built-in username/email/firstName/lastName included.
+
+    The schema is typed rather than free-form so the generated CRD validates it. The validators
+    modelled are Keycloak's built-in ones; a validator not listed here is pruned by the API server.
+    Declares the http/bearer security scheme that the upstream Keycloak OAS omits.
+servers:
+- url: '{{ .Values.keycloak.baseUrl }}'
+  description: Keycloak base URL (no trailing slash).
+security:
+- bearer: []
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: Keycloak admin access token (OAuth2 Bearer).
+  schemas:
+    Roles:
+      type: array
+      description: '"admin" (the admin console and Admin API) and/or "user" (the user, in the account console and login pages).'
+      items:
+        type: string
+        enum:
+        - admin
+        - user
+    ErrorMessage:
+      type: object
+      properties:
+        error-message:
+          type: string
+          description: Message (or message key) shown when the validation fails.
+    Validations:
+      type: object
+      description: Validators applied to the attribute value, keyed by validator id.
+      properties:
+        length:
+          type: object
+          properties:
+            min:
+              type: integer
+            max:
+              type: integer
+            trim-disabled:
+              type: boolean
+            error-message:
+              type: string
+        email:
+          type: object
+          properties:
+            max-local-length:
+              type: integer
+            error-message:
+              type: string
+        pattern:
+          type: object
+          properties:
+            pattern:
+              type: string
+            error-message:
+              type: string
+        options:
+          type: object
+          properties:
+            options:
+              type: array
+              items:
+                type: string
+        uri:
+          $ref: '#/components/schemas/ErrorMessage'
+        integer:
+          type: object
+          properties:
+            min:
+              type: integer
+            max:
+              type: integer
+        double:
+          type: object
+          properties:
+            min:
+              type: number
+            max:
+              type: number
+        local-date:
+          $ref: '#/components/schemas/ErrorMessage'
+        iso-date:
+          $ref: '#/components/schemas/ErrorMessage'
+        multivalued:
+          type: object
+          properties:
+            min:
+              type: integer
+            max:
+              type: integer
+        username-prohibited-characters:
+          $ref: '#/components/schemas/ErrorMessage'
+        up-username-not-idn-homograph:
+          $ref: '#/components/schemas/ErrorMessage'
+        person-name-prohibited-characters:
+          $ref: '#/components/schemas/ErrorMessage'
+    Attribute:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: Attribute name, e.g. email or krateo-access-request-uid.
+        displayName:
+          type: string
+          description: Label, or a message key such as ${email}.
+        group:
+          type: string
+          description: Name of the attribute group (see groups) it is shown under.
+        multivalued:
+          type: boolean
+        validations:
+          $ref: '#/components/schemas/Validations'
+        annotations:
+          type: object
+          description: UI hints, e.g. inputType.
+          additionalProperties:
+            type: string
+        required:
+          type: object
+          description: When present, the attribute is required for these roles (and, optionally, only in these client scopes).
+          properties:
+            roles:
+              $ref: '#/components/schemas/Roles'
+            scopes:
+              type: array
+              items:
+                type: string
+        permissions:
+          type: object
+          description: Who may see and change the value. An attribute with view/edit [admin] only is invisible to the user.
+          properties:
+            view:
+              $ref: '#/components/schemas/Roles'
+            edit:
+              $ref: '#/components/schemas/Roles'
+        selector:
+          type: object
+          description: When present, the attribute exists only when these client scopes are requested.
+          properties:
+            scopes:
+              type: array
+              items:
+                type: string
+    AttributeGroup:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+        displayHeader:
+          type: string
+        displayDescription:
+          type: string
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+    UPConfig:
+      type: object
+      required:
+      - attributes
+      properties:
+        unmanagedAttributePolicy:
+          type: string
+          description: |
+            What happens to attributes NOT declared in `attributes`. Leave unset to keep them disabled
+            (Keycloak drops them). ENABLED: anyone may view and edit them; ADMIN_VIEW: only admins may
+            view them; ADMIN_EDIT: only admins may view and edit them.
+          enum:
+          - ENABLED
+          - ADMIN_VIEW
+          - ADMIN_EDIT
+        attributes:
+          type: array
+          description: Every attribute of the realm's users, in display order. The built-ins (username, email, firstName, lastName) must be listed too.
+          items:
+            $ref: '#/components/schemas/Attribute'
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttributeGroup'
+paths:
+  /admin/realms/{realm}/users/profile:
+    get:
+      operationId: getUserprofile
+      summary: Get the realm's user profile configuration
+      tags:
+      - userprofile
+      parameters:
+      - name: realm
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UPConfig'
+    put:
+      operationId: updateUserprofile
+      summary: Replace the realm's user profile configuration
+      tags:
+      - userprofile
+      parameters:
+      - name: realm
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UPConfig'
+      responses:
+        '200':
+          description: The stored configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UPConfig'

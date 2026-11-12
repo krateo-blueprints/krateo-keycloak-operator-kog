@@ -80,6 +80,7 @@ avoid crdgen collisions with same-named lowercase body properties (the Nova KOG'
 | `idpmapper` | `KeycloakIdentityProviderMapper` | `true` |
 | `authenticationflow` | `KeycloakAuthenticationFlow` | `true` |
 | `requiredaction` | `KeycloakRequiredAction` | `true` |
+| `userprofile` | `KeycloakUserProfile` | `true` |
 | `authenticationexecution` | `KeycloakAuthenticationExecution` | `true` |
 
 `KeycloakUser` requires oasgen-provider **>= 0.56.0** (the release ships

@@ -93,6 +93,12 @@ restDefinitions:
   requiredaction:
     enabled: true
     kind: KeycloakRequiredAction
+  # A realm's declarative user profile (which user attributes exist, who may view/edit them).
+  # One document per realm that always exists: the kind adopts it and replaces it on update, and
+  # deleting the CR leaves it in place. The CR owns the WHOLE profile. Needs Keycloak >= 24.
+  userprofile:
+    enabled: true
+    kind: KeycloakUserProfile
   # One execution (or subflow) INSIDE a flow. Keycloak's executions API is
   # create-then-mutate (priority honored at create, immutable afterwards), so
   # this RestDefinition delegates its lifecycle verbs to Snowplow RESTActions
