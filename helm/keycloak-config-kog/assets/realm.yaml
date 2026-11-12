@@ -151,14 +151,21 @@ components:
           $ref: '#/components/schemas/SmtpCredentialsRef'
         eventsEnabled:
           type: boolean
-          description: Store user events (login, SEND_EXECUTE_ACTIONS, SEND_ERROR, ...).
+          description: Store user events (LOGIN, LOGIN_ERROR, UPDATE_CREDENTIAL, ...).
         enabledEventTypes:
           type: array
-          description: The user event types to store, e.g. SEND_EXECUTE_ACTIONS and SEND_ERROR.
+          # A set: Keycloak keeps it as a Java Set and returns it in its own order.
+          uniqueItems: true
+          description: |
+            The user event types to store: Keycloak EventType names, e.g. LOGIN, LOGIN_ERROR, UPDATE_CREDENTIAL
+            (the Admin API's /admin/serverinfo lists them under enums.eventType). Keycloak accepts an unknown
+            name without complaint and records nothing for it.
           items:
             type: string
         eventsListeners:
           type: array
+          # A set, like enabledEventTypes.
+          uniqueItems: true
           description: Event listener providers, e.g. jboss-logging (events in the server log).
           items:
             type: string
