@@ -14,11 +14,11 @@ timestamp: 2026-08-11T00:00:00Z
 - A running Keycloak (the sibling
   [`krateo-keycloak-blueprint`](https://github.com/krateo-blueprints/krateo-keycloak-blueprint)
   stands one up), reachable at `keycloak.baseUrl`.
-- The KOG toolchain: `oasgen-provider` and `rest-dynamic-controller` installed in the
-  cluster (`oasgen-provider` 0.12.0+ / rdc 0.11.0+ are the versions validated
-  in-cluster; the `KeycloakUser` resource needs oasgen-provider (and its bundled
-  rest-dynamic-controller) **>= 0.56.0** — see the notes in
-  `helm/keycloak-config-kog/templates/rd-user.yaml`).
+- The KOG toolchain: `oasgen-provider` (with its bundled rest-dynamic-controller) **>= 0.62.0**
+  since 0.7.1 (Chart.yaml annotation `krateo.io/requires-oasgen-provider`). 0.62.0 compares the
+  realm's `enabledEventTypes` and `eventsListeners` as sets; Keycloak returns them in its own order,
+  so on older releases a realm with more than a couple of event types is re-PUT a few times and then
+  latches `Ready=False` (measured on 0.61.0: four PUTs, then "Drift is not converging").
 - [External Secrets Operator](https://external-secrets.io) ≥ 0.19 for the default
   short-lived-token wiring.
 - A service-account client in Keycloak (`krateo-kog` by default) with
