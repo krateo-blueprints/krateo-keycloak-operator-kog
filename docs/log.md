@@ -11,6 +11,14 @@ timestamp: 2026-08-11T00:00:00Z
 
 Curated history; release notes live in GitHub Releases.
 
+## 2026-11-12 — 0.7.2: restDefinitions.user is declared in the schema
+
+`values.schema.json` never declared `restDefinitions.user` (missing from 0.6.0 to 0.7.1) although
+`values.yaml` sets it, so the key could not be set through a Krateo Composition or an installer that
+mirrors the schema: it was pruned silently and the default always applied. It is declared now, and CI
+gate `hack/check-values-declared.py` requires every `values.yaml` key to be declared. No asset,
+template or default changed: a schema widening only. Found by the installer session.
+
 ## 2026-11-12 — 0.7.1: the realm's event types and listeners are sets
 
 `enabledEventTypes` and `eventsListeners` declare `uniqueItems: true` (the CRD gets

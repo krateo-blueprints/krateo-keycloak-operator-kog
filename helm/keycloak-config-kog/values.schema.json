@@ -311,6 +311,25 @@
             }
           }
         },
+        "user": {
+          "type": "object",
+          "title": "User",
+          "description": "KeycloakUser RestDefinition (users, with credentials from a Secret). Needs oasgen-provider >= 0.56.0.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "Enabled",
+              "description": "Emit the KeycloakUser RestDefinition.",
+              "default": true
+            },
+            "kind": {
+              "type": "string",
+              "title": "Kind",
+              "description": "Kubernetes kind for the generated CRD.",
+              "default": "KeycloakUser"
+            }
+          }
+        },
         "userprofile": {
           "type": "object",
           "title": "User profile",
