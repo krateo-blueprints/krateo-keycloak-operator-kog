@@ -1,4 +1,5 @@
-{{- if .Values.restDefinitions.authenticationflow.enabled }}
+{{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
+{{- if $kogRD.authenticationflow.enabled }}
 apiVersion: ogen.krateo.io/v1alpha1
 kind: RestDefinition
 metadata:
@@ -9,7 +10,7 @@ spec:
   oasPath: configmap://{{ .Release.Namespace }}/{{ .Release.Name }}-authenticationflow/authenticationflow.yaml
   resourceGroup: {{ .Values.resourceGroup }}
   resource:
-    kind: {{ .Values.restDefinitions.authenticationflow.kind }}
+    kind: {{ $kogRD.authenticationflow.kind }}
     # Top-level authentication flow container. `alias` is the user-supplied
     # natural key (findby); the server-generated UUID {id} is resolved via findby
     # and used for get/update/delete. Parent scope: {realm}.

@@ -1,4 +1,5 @@
-{{- if .Values.restDefinitions.authenticationexecution.enabled }}
+{{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
+{{- if $kogRD.authenticationexecution.enabled }}
 apiVersion: ogen.krateo.io/v1alpha1
 kind: RestDefinition
 metadata:
@@ -9,7 +10,7 @@ spec:
   oasPath: configmap://{{ .Release.Namespace }}/{{ .Release.Name }}-authenticationexecution/authenticationexecution.yaml
   resourceGroup: {{ .Values.resourceGroup }}
   resource:
-    kind: {{ .Values.restDefinitions.authenticationexecution.kind }}
+    kind: {{ $kogRD.authenticationexecution.kind }}
     # One execution (or subflow) that is a DIRECT child of the flow addressed by
     # `flowAlias` (top-level flow alias or subflow alias - aliases are realm-unique).
     # Keycloak's executions API is create-then-mutate: create at .../executions/execution

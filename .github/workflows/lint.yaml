@@ -50,6 +50,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # The reuse-values gate reads values.yaml at previous release tags.
+          fetch-depth: 0
 
       - name: Install Helm
         uses: azure/setup-helm@v5
@@ -90,6 +93,15 @@ jobs:
       # A key values.yaml sets but values.schema.json does not declare cannot be set through Krateo:
       # the Composition CRD (and an embedding installer) prune it silently. restDefinitions.user was
       # undeclared from 0.6.0 to 0.7.1.
+      # `helm upgrade --reuse-values` upgrades with the previous release's values and skips this chart's
+      # values.yaml defaults: 0.7.0-0.7.2 failed it from 0.6.0 with a nil pointer on
+      # restDefinitions.userprofile. Render under each previous release's values.
+      - name: Gate --reuse-values upgrades (render under previous releases' values)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          python3 hack/check-reuse-values.py
+
       - name: Gate values.schema.json (every values.yaml key is declared)
         run: |
           set -euo pipefail

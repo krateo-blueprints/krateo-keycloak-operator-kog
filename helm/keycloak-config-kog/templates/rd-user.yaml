@@ -1,4 +1,5 @@
-{{- if .Values.restDefinitions.user.enabled }}
+{{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
+{{- if $kogRD.user.enabled }}
 apiVersion: ogen.krateo.io/v1alpha1
 kind: RestDefinition
 metadata:
@@ -9,7 +10,7 @@ spec:
   oasPath: configmap://{{ .Release.Namespace }}/{{ .Release.Name }}-user/user.yaml
   resourceGroup: {{ .Values.resourceGroup }}
   resource:
-    kind: {{ .Values.restDefinitions.user.kind }}
+    kind: {{ $kogRD.user.kind }}
     # `username` is the user-supplied natural key; Keycloak addresses the user by a
     # server-generated UUID. `findby` lists the collection and matches username to
     # resolve {id} (written to status) for get/update/delete. Same pattern as client.

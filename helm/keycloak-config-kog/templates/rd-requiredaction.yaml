@@ -1,4 +1,5 @@
-{{- if .Values.restDefinitions.requiredaction.enabled }}
+{{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
+{{- if $kogRD.requiredaction.enabled }}
 apiVersion: ogen.krateo.io/v1alpha1
 kind: RestDefinition
 metadata:
@@ -9,7 +10,7 @@ spec:
   oasPath: configmap://{{ .Release.Namespace }}/{{ .Release.Name }}-requiredaction/requiredaction.yaml
   resourceGroup: {{ .Values.resourceGroup }}
   resource:
-    kind: {{ .Values.restDefinitions.requiredaction.kind }}
+    kind: {{ $kogRD.requiredaction.kind }}
     # Required-action provider (e.g. CONFIGURE_TOTP, webauthn-register). `alias`
     # is a user-supplied natural key addressable directly (no server UUID). Parent
     # scope: {realm}. Base actions ship built-in, so reconcile usually observes

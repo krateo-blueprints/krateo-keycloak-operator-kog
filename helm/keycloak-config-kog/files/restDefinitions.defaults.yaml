@@ -1,0 +1,40 @@
+# The defaults of values.yaml's `restDefinitions`, as a chart file the templates can read.
+# `helm upgrade --reuse-values` does not apply values.yaml's defaults, and Helm does not expose
+# values.yaml through .Files, so templates merge these under the supplied values (see _helpers.tpl).
+# CI (hack/check-reuse-values.py) requires this file to equal values.yaml's restDefinitions.
+realm:
+  enabled: true
+  kind: KeycloakRealm
+client:
+  enabled: true
+  kind: KeycloakClient
+protocolmapper:
+  enabled: true
+  kind: KeycloakProtocolMapper
+clientscope:
+  enabled: true
+  kind: KeycloakClientScope
+group:
+  enabled: true
+  kind: KeycloakGroup
+user:
+  enabled: true
+  kind: KeycloakUser
+identityprovider:
+  enabled: true
+  kind: KeycloakIdentityProvider
+idpmapper:
+  enabled: true
+  kind: KeycloakIdentityProviderMapper
+authenticationflow:
+  enabled: true
+  kind: KeycloakAuthenticationFlow
+requiredaction:
+  enabled: true
+  kind: KeycloakRequiredAction
+userprofile:
+  enabled: true
+  kind: KeycloakUserProfile
+authenticationexecution:
+  enabled: true
+  kind: KeycloakAuthenticationExecution

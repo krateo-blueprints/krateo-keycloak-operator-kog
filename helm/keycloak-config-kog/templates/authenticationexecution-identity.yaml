@@ -1,7 +1,8 @@
+{{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
 {{- /* Default ON when the key is absent: a release upgraded with --reuse-values from a version
      without `executionIdentity` must still render what its execution path needs. */ -}}
 {{- $ei := .Values.executionIdentity | default dict }}
-{{- if and .Values.restDefinitions.authenticationexecution.enabled (ne (toString $ei.enabled) "false") }}
+{{- if and $kogRD.authenticationexecution.enabled (ne (toString $ei.enabled) "false") }}
 {{- /*
 What the KeycloakAuthenticationExecution path needs beyond its RestDefinition and RESTActions, so
 nobody applies it by hand:
@@ -16,7 +17,7 @@ The controller's ServiceAccount name is oasgen-provider's convention for the gen
 keycloak.ogen.krateo.io-v1alpha1). authn's issued username is this CR's metadata.name, so it is the
 same string.
 */ -}}
-{{- $sa := printf "%ss-%s-v1alpha1" (lower .Values.restDefinitions.authenticationexecution.kind) .Values.resourceGroup }}
+{{- $sa := printf "%ss-%s-v1alpha1" (lower $kogRD.authenticationexecution.kind) .Values.resourceGroup }}
 {{- $group := $ei.group | default "krateo:rdc" }}
 apiVersion: serviceaccount.authn.krateo.io/v1alpha1
 kind: ServiceAccount
@@ -25,7 +26,7 @@ metadata:
   labels:
     {{- include "keycloak-config-kog.labels" . | nindent 4 }}
 spec:
-  displayName: {{ .Values.restDefinitions.authenticationexecution.kind }} controller
+  displayName: {{ $kogRD.authenticationexecution.kind }} controller
   principal: controller
   groups:
     - {{ $group }}
