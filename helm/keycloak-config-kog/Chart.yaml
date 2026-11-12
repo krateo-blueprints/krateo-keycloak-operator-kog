@@ -22,6 +22,9 @@ annotations:
   krateo.io/display-name: Keycloak Config KOG
   krateo.io/maturity: beta
   krateoSupportedVersion: ">= 2.5.1"
+  # The oasgen-provider this chart needs: 0.62.0 compares the realm's set-typed arrays
+  # (enabledEventTypes, eventsListeners) as sets; older releases see Keycloak's reordering as drift.
+  krateo.io/requires-oasgen-provider: ">= 0.62.0"
 # Helm's `sources` is the source code of THIS chart, and release tooling resolves the chart version
 # as a tag in each listed repo. The Keycloak OpenAPI document (an input, vendored under assets/) and
 # oasgen-provider (the generator that reads it) are not this chart's source: listing oasgen-provider

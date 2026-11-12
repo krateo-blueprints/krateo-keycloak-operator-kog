@@ -11,6 +11,20 @@ timestamp: 2026-08-11T00:00:00Z
 
 Curated history; release notes live in GitHub Releases.
 
+## 2026-11-12 — 0.7.1: the realm's event types and listeners are sets
+
+`enabledEventTypes` and `eventsListeners` declare `uniqueItems: true` (the CRD gets
+`x-kubernetes-list-type: set`). With oasgen-provider 0.62.0, which compares such arrays as sets, the
+order Keycloak returns them in is no longer drift. Requires oasgen-provider >= 0.62.0 (Chart.yaml
+annotation `krateo.io/requires-oasgen-provider`). Descriptions and docs no longer name
+`SEND_EXECUTE_ACTIONS`/`SEND_ERROR`, which are not Keycloak EventTypes.
+
+Measured on GKE (Keycloak 26.6.3), one realm with 23 event types, before and after on the same cluster:
+oasgen-provider 0.61.0 PUT it at 15:16:30, 15:19:30, 15:22:30 and 15:25:30Z and then stopped ("Drift is
+not converging"), leaving it `Ready=False`; 0.62.0 issued no PUT over 15 minutes, observing it up to
+date every 3 minutes, `Ready=True`. Positive control: removing `LOGIN` from the live realm produced
+exactly one restoring PUT, then up to date again.
+
 ## 2026-11-12 — 0.7.0: KeycloakUserProfile
 
 New kind `KeycloakUserProfile`: a realm's declarative user profile (attributes, who may view and

@@ -14,11 +14,11 @@ timestamp: 2026-08-11T00:00:00Z
 - A running Keycloak (the sibling
   [`krateo-keycloak-blueprint`](https://github.com/krateo-blueprints/krateo-keycloak-blueprint)
   stands one up), reachable at `keycloak.baseUrl`.
-- The KOG toolchain: `oasgen-provider` and `rest-dynamic-controller` installed in the
-  cluster (`oasgen-provider` 0.12.0+ / rdc 0.11.0+ are the versions validated
-  in-cluster; the `KeycloakUser` resource needs oasgen-provider (and its bundled
-  rest-dynamic-controller) **>= 0.56.0** — see the notes in
-  `helm/keycloak-config-kog/templates/rd-user.yaml`).
+- The KOG toolchain: `oasgen-provider` (with its bundled rest-dynamic-controller) **>= 0.62.0**
+  since 0.7.1 (Chart.yaml annotation `krateo.io/requires-oasgen-provider`). 0.62.0 compares the
+  realm's `enabledEventTypes` and `eventsListeners` as sets; Keycloak returns them in its own order,
+  so on older releases a realm with more than a couple of event types is re-PUT a few times and then
+  latches `Ready=False` (measured on 0.61.0: four PUTs, then "Drift is not converging").
 - [External Secrets Operator](https://external-secrets.io) ≥ 0.19 for the default
   short-lived-token wiring.
 - A service-account client in Keycloak (`krateo-kog` by default) with
@@ -116,7 +116,7 @@ spec:
   verifyEmail: true
   actionTokenGeneratedByAdminLifespan: 259200   # seconds; the set-password link stays valid 72 h
   eventsEnabled: true
-  enabledEventTypes: [SEND_EXECUTE_ACTIONS, SEND_ERROR]
+  enabledEventTypes: [LOGIN, LOGIN_ERROR, UPDATE_CREDENTIAL]
   eventsListeners: [jboss-logging]
   smtpServer:                                   # every value is a string, as Keycloak stores it
     host: smtp-relay.gmail.com
@@ -140,11 +140,12 @@ What was measured live (Keycloak 26.4 via keycloak-operator, rest-dynamic-contro
 - With a wrong password, `PUT .../users/{id}/execute-actions-email` answers **HTTP 500**, nothing is
   sent, and the server log reports `KC-SERVICES0029 ... AuthenticationFailedException`.
 
-**Keycloak does not store `SEND_EXECUTE_ACTIONS` or `SEND_ERROR` user events for an email an
-administrator triggers** (the admin API's execute-actions-email), whether it succeeds or fails, even
-with both types enabled. Success appears only as an admin event (`ACTION` on `USER`). Whoever calls
-the admin API must treat a non-204 answer as the failure signal; do not build alerting on those
-events for that path.
+**An email an administrator triggers (the admin API's execute-actions-email) records no user event**,
+whether it succeeds or fails. Success appears only as an admin event (`ACTION` on `USER`); a failed
+send records nothing. Whoever calls the admin API must treat a non-204 answer as the failure signal.
+(Up to 0.7.0 this page, and krateo-keycloak-realm up to 0.3.0, named `SEND_EXECUTE_ACTIONS` and
+`SEND_ERROR`: neither is a Keycloak EventType. Keycloak stored them, recorded nothing, and answered
+HTTP 500 to event queries by them.)
 
 ### Rotating SMTP credentials
 
