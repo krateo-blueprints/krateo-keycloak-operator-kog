@@ -1,69 +1,67 @@
 ---
 type: Runbook
 title: keycloak-config-kog — release
-description: How a release ships — a SemVer git tag matching Chart.yaml publishes the chart to GHCR OCI, after which the CompositionDefinition is bumped to the published version.
+description: How a release ships — a plain-SemVer git tag on a main commit that passed lint publishes the chart to GHCR OCI and to the Marketplace blueprints index, with the CompositionDefinition stamped to the tag inside the archive and on the GitHub release.
 resource: oci://ghcr.io/krateo-blueprints/charts/keycloak-config-kog
-tags: [release, oci, ghcr, helm]
-timestamp: 2026-08-11T00:00:00Z
+tags: [release, oci, ghcr, helm, marketplace]
+timestamp: 2026-11-12T00:00:00Z
 ---
 
 # Release
 
-One SemVer git tag (`X.Y.Z`, **no** `v` prefix, matching `chart/Chart.yaml`'s
-`version`) publishes the chart. The tag push triggers `release-chart.yaml`.
+One plain-SemVer git tag (`X.Y.Z`, **no** `v` prefix) publishes the chart. Nothing is bumped by
+hand: `version: CHART_VERSION` in `helm/keycloak-config-kog/Chart.yaml` and
+`spec.chart.version: CHART_VERSION` in the root `compositiondefinition.yaml` are stamped from the
+tag. `appVersion` is the Keycloak release line the chart targets, not the chart version.
+
+## Cut a release
+
+1. Merge the change to `main`. [`lint.yaml`](../.github/workflows/lint.yaml) runs on the merge
+   commit (it runs on every push to `main`).
+2. Wait until that **whole** lint run has concluded successfully, then tag the merge commit:
+
+   ```console
+   $ git tag X.Y.Z <merge-sha> && git push origin X.Y.Z
+   ```
 
 ## What a tag ships
 
-`release-chart.yaml` (`.github/workflows/release-chart.yaml`) on a
-`[0-9]+.[0-9]+.[0-9]+` tag:
+[`release-tag.yaml`](../.github/workflows/release-tag.yaml), on a `[0-9]+.[0-9]+.[0-9]+` tag:
 
-1. `helm lint chart` — validates the chart and its `values.schema.json`.
-2. Verifies the git tag equals `Chart.yaml`'s `version` (fails the release
-   otherwise).
-3. `helm package chart` — `helm package` does not render templates, so a chart that
-   needs runtime input still publishes.
-4. Logs in to GHCR with the workflow `GITHUB_TOKEN`.
-5. `helm push` to `oci://ghcr.io/<owner>/charts` (the owner is derived from the
-   repository, lower-cased — `GITHUB_TOKEN` can only write its own namespace), with a
-   5-attempt retry for GHCR first-push flakiness.
+1. refuses the tag unless the tagged commit has a completed, successful run of `lint.yaml`;
+2. stamps `CHART_VERSION` into `Chart.yaml` and the CompositionDefinition, and copies the stamped
+   CompositionDefinition into the chart so the archive describes itself;
+3. packages the chart and gates it for the Marketplace **blueprints** channel: `Chart.yaml`
+   `sources` lists this repository, the archive carries `values.schema.json` and
+   `compositiondefinition.yaml`, the CompositionDefinition installs this chart at this version,
+   the icon is an https URL, and `keywords` is non-empty;
+4. pushes it to `oci://ghcr.io/krateo-blueprints/charts/keycloak-config-kog` and checks that it is
+   anonymously pullable (core-provider pulls anonymously);
+5. attaches the stamped `compositiondefinition.yaml` to the GitHub release;
+6. hands the same archive to the org publisher (`krateo-blueprints/charts` `publish-chart.yaml`),
+   which adds it to `https://krateo-blueprints.github.io/charts/blueprints/index.yaml` and installs
+   it from the served index before it reports success.
 
-The published artifact is `oci://ghcr.io/krateo-blueprints/charts/keycloak-config-kog`,
-which is exactly what `compositiondefinition.yaml`'s `spec.chart.url` points at.
-
-## Steps
-
-```console
-$ git tag X.Y.Z && git push origin X.Y.Z
-```
-
-Then verify the artifact exists:
-
-```console
-$ helm show chart oci://ghcr.io/krateo-blueprints/charts/keycloak-config-kog \
-    --version X.Y.Z | head -3
-```
-
-After the chart is published, bump `compositiondefinition.yaml`'s
-`spec.chart.version` to `X.Y.Z` on `main` — it is this blueprint's own registration
-and must point at a version that exists.
+After publishing, pull `oci://ghcr.io/krateo-blueprints/charts/keycloak-config-kog --version X.Y.Z`
+and compare its sha256 with the `digest` of the `X.Y.Z` entry in the blueprints index: they must
+be the same bytes.
 
 ## PR-time checks
 
-Two workflows run on every PR and push to `main`:
+[`lint.yaml`](../.github/workflows/lint.yaml) runs on every PR and every push to `main`:
 
-- **`chart-tests.yaml`** — `helm lint` + `helm template` (the render must succeed),
-  a check that every embedded `chart/assets/*.yaml` OAS parses, and the
-  `KeycloakAuthenticationExecution` **delegation-wiring tests** (`tests/delegation`),
-  which render the chart, extract the exact jq from the four Snowplow `RESTAction`s,
-  and assert the observe/create/update/delete stages against fixture payloads. Fully
-  offline — no Keycloak, no cluster.
-- **`lint.yaml`** — the shared Krateo docs-standard linter (`lint-docs`), which checks
-  this documentation bundle for the invariant core files, valid frontmatter,
-  resolvable links, and the README section order.
+- **`test`** — the `KeycloakAuthenticationExecution` **delegation-wiring tests**
+  (`tests/delegation`): they render the chart, extract the exact jq from the four Snowplow
+  `RESTAction`s, and assert the observe/create/update/delete stages against fixture payloads.
+  Fully offline, no Keycloak, no cluster. This is the `test` check-run release consumers look for.
+- **`lint`** — chart URL and status-field checks, a render with the keys added since 0.4.x absent
+  (the `helm upgrade --reuse-values` shape), and the `values.schema.json` gate
+  (`hack/check-schema-required.py`: no `required` key that `values.yaml` defaults).
+- **`lint-docs`** — the shared Krateo docs-standard linter: invariant core files, valid
+  frontmatter, resolvable links, README section order.
 
-Live-Keycloak validation is a separately-gated step: `hack/validate-executions-live.sh`
-replays the extracted stage sequences against a real Keycloak, and the full in-cluster
-reconcile is exercised by the `demo/` walkthroughs.
+A full in-cluster reconcile against a real Keycloak is not part of CI; it is exercised by the
+`demo/` walkthroughs and by the live validation recorded for each release in [log](log.md).
 
 ## Version pinning downstream
 

@@ -38,7 +38,7 @@ blueprint stands up. The full design is in [ARCHITECTURE.md](./ARCHITECTURE.md).
 | `restactions-authenticationexecution.yaml` | four Snowplow `RESTAction`s | the delegated observe/create/update/delete for `KeycloakAuthenticationExecution` |
 
 Each `RestDefinition` maps 1:1 to a hand-curated OAS subset in
-`chart/assets/<key>.yaml`. The curated schemas use field names verbatim from
+`helm/keycloak-config-kog/assets/<key>.yaml`. The curated schemas use field names verbatim from
 Keycloak's official OAS 3.0.3 so request bodies stay wire-compatible, but they trim
 the huge `*Representation` schemas (`RealmRepresentation` alone is 152 fields) down to
 the SSO-relevant subset.
@@ -60,6 +60,7 @@ resource kinds are served as `keycloak.ogen.krateo.io/v1` (the version is each O
 | `KeycloakIdentityProviderMapper` | mapper on an IdP instance | `name` → UUID via `findby`; parent `alias` |
 | `KeycloakAuthenticationFlow` | authentication flow (top-level container) | `alias` → UUID via `findby` |
 | `KeycloakRequiredAction` | required-action provider (`CONFIGURE_TOTP`, `webauthn-register`, …) | natural key `alias` (direct) |
+| `KeycloakUserProfile` | a realm's declarative user profile (attributes, who may view/edit them, validators) | one per realm (`realm` is the key); adopt-then-replace, never created or deleted |
 | `KeycloakAuthenticationExecution` | one execution/subflow **inside** a flow | `(realm, flowAlias, provider \| alias)` via delegated Snowplow `RESTAction`s |
 
 For **UUID-addressed** resources (client/group/client-scope/mapper/user) `findby`

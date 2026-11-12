@@ -11,6 +11,40 @@ timestamp: 2026-08-11T00:00:00Z
 
 Curated history; release notes live in GitHub Releases.
 
+## 2026-11-12 — 0.7.0: KeycloakUserProfile
+
+New kind `KeycloakUserProfile`: a realm's declarative user profile (attributes, who may view and
+edit them, validators). Keycloak keeps one profile per realm and it always exists, so the kind has
+no create and no delete verb: it adopts the realm's profile and replaces it whole (PUT) when it
+differs, and deleting the CR leaves the profile in place. The schema is typed (the built-in
+validators are modelled), so the generated CRD validates it. See [usage](usage.md).
+
+Measured on a disposable GKE cluster against the shipped stack (Keycloak 26.6.3, keycloak-operator
+and keycloak 0.2.6, oasgen-provider 0.60.0), with krateo-keycloak-realm rendering the CR:
+
+- Before the profile existed (realm chart 0.2.0), an attribute set at user creation was dropped.
+- After it: the profile was applied with one PUT. The live profile equals the CR except
+  `multivalued: false`, Keycloak's default, which is not treated as drift: no further PUT over the
+  following minutes, only periodic up-to-date observations.
+- Users created before the profile existed (one with only a username, one with every field) both
+  accepted admin updates afterwards (204).
+- An attribute with view/edit `[admin]`: kept on create, found by `?q=<name>:<value>`, a 37-character
+  value refused by `length.max: 36` (400). The user does not see it in the account API, and the
+  account API refuses the user's attempt to set it (400 `error-user-attribute-read-only`) while a
+  normal profile change by the same user succeeds (204).
+- An out-of-band profile edit removing the attribute was reverted by the controller after 63 s. A
+  user's stored value survived the window in which the attribute was undeclared.
+- Removing the CR (the realm chart with `userProfile.enabled: false`, orphan policy) left the realm's
+  profile unchanged; re-enabling adopted it again.
+
+The first reconcile can log one `Cannot observe` (the token Secret is forbidden) when the CR and its
+Configuration are created in the same apply: the RBAC that the Configuration grants arrives a moment
+later, and the next reconcile succeeds (1.4 s in the run above).
+
+Also: `hack/gen_oas_assets.py` is removed. It no longer reproduced four of the shipped assets, so
+running it would have reverted released fixes; the assets are hand-curated and are the source of
+truth. README and docs/release.md now describe the current CI and release workflow.
+
 ## 2026-11-11 — 0.6.0: realm mail (password and XOAUTH2), events and action-link lifetimes
 
 `KeycloakRealm` gains `smtpServer` (password or token authentication), the user-event settings, the

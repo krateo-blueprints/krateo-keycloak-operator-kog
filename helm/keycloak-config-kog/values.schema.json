@@ -311,6 +311,25 @@
             }
           }
         },
+        "userprofile": {
+          "type": "object",
+          "title": "User profile",
+          "description": "KeycloakUserProfile RestDefinition: a realm's declarative user profile (attributes, permissions, validators), adopted and replaced as a whole.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "Enabled",
+              "description": "Emit the KeycloakUserProfile RestDefinition.",
+              "default": true
+            },
+            "kind": {
+              "type": "string",
+              "title": "Kind",
+              "description": "Kubernetes kind for the generated CRD.",
+              "default": "KeycloakUserProfile"
+            }
+          }
+        },
         "authenticationexecution": {
           "type": "object",
           "title": "Authentication execution",
