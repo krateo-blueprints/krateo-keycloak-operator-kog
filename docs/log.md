@@ -11,6 +11,16 @@ timestamp: 2026-08-11T00:00:00Z
 
 Curated history; release notes live in GitHub Releases.
 
+## 2026-11-13 — 0.8.1: the token endpoint follows `keycloak.baseUrl`
+
+`auth.externalSecret.tokenEndpoint` defaults to empty, meaning `<keycloak.baseUrl>/realms/master/protocol/openid-connect/token`.
+It was a separate hard-coded default (`keycloak-service.keycloak-system…`), so an install that pointed
+`keycloak.baseUrl` at another namespace, or at a Keycloak served under a path prefix (keycloak chart
+0.4.0 `keycloak.http.relativePath`, needed by path-mode gateways), had to set the same Keycloak twice,
+and a mismatch minted the token at a different or non-existent Keycloak. An explicit value still wins.
+With the default `baseUrl` the derived URL is the previous default byte for byte, and releases upgraded
+with `--reuse-values` keep their explicit value. CI gate `hack/check-token-endpoint.py`.
+
 ## 2026-11-13 — 0.8.0: KeycloakServiceAccountRoleMapping; client URI and scope lists are sets
 
 **`KeycloakServiceAccountRoleMapping`**: the exact set of one client's roles held by another client's

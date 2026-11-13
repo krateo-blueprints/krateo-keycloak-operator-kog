@@ -32,7 +32,7 @@ rest-dynamic-controller reads a bearer token from a Secret referenced by each CR
 | `auth.externalSecret.enabled` | `true` | render the ESO `Webhook` generator + `ExternalSecret`. Set `false` to supply the token Secret yourself. |
 | `auth.externalSecret.refreshInterval` | `30s` | must stay **well below** the Keycloak access-token lifespan so the bearer never goes stale. The master realm defaults to 60 s (measured `exp - iat = 60`), so 30 s leaves half a lifetime of margin. |
 | `auth.externalSecret.generatorRef` | `Webhook` `keycloak-admin-token-webhook` | the ESO Generator (preferred) or SecretStore that yields the token. |
-| `auth.externalSecret.tokenEndpoint` | `…/realms/master/protocol/openid-connect/token` | Keycloak's `client_credentials` token endpoint the generator POSTs to. |
+| `auth.externalSecret.tokenEndpoint` | `""` = `<keycloak.baseUrl>/realms/master/protocol/openid-connect/token` | Keycloak's `client_credentials` token endpoint the generator POSTs to. Empty derives it from `keycloak.baseUrl` (a path prefix such as `/keycloak` is carried over), so the token and the admin calls go to the same Keycloak; set it only to mint the token elsewhere. Before 0.8.1 it was a separate hard-coded default. |
 | `auth.externalSecret.clientId` | `krateo-kog` | the service-account client that mints the token. Needs `serviceAccountsEnabled` + `realm-management` roles. |
 | `auth.externalSecret.clientSecretRef.name` / `.key` | `keycloak-kog-client` / `clientSecret` | a **pre-existing** Secret holding the client secret (never stored in values). The Secret must carry the `external-secrets.io/type: webhook` label or ESO refuses to read it. |
 

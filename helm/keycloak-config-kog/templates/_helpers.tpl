@@ -22,3 +22,15 @@ Every template reads restDefinitions through this helper.
 {{- $defaults := .Files.Get "files/restDefinitions.defaults.yaml" | fromYaml | default dict -}}
 {{- toYaml (mergeOverwrite (deepCopy $defaults) (.Values.restDefinitions | default dict)) -}}
 {{- end -}}
+
+{{- /* The client_credentials token endpoint: auth.externalSecret.tokenEndpoint when set, otherwise derived
+from keycloak.baseUrl, so the token is minted by the same Keycloak the controllers call (a path prefix
+in baseUrl, e.g. /keycloak, is carried over). */ -}}
+{{- define "keycloak-config-kog.tokenEndpoint" -}}
+{{- $te := (.Values.auth.externalSecret).tokenEndpoint | default "" -}}
+{{- if $te -}}
+{{- $te -}}
+{{- else -}}
+{{- printf "%s/realms/master/protocol/openid-connect/token" (.Values.keycloak.baseUrl | trimSuffix "/") -}}
+{{- end -}}
+{{- end -}}
