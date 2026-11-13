@@ -11,6 +11,29 @@ timestamp: 2026-08-11T00:00:00Z
 
 Curated history; release notes live in GitHub Releases.
 
+## 2026-11-13 — 0.8.0: KeycloakServiceAccountRoleMapping; client URI and scope lists are sets
+
+**`KeycloakServiceAccountRoleMapping`**: the exact set of one client's roles held by another client's
+service-account user (first user: identity-lifecycle's client, `realm-management` `manage-users`,
+`view-users`, `query-groups`). Keycloak addresses both by UUID only and has no set-replace call, so the
+lifecycle is delegated to Snowplow RESTActions (observe / apply / delete), like
+`KeycloakAuthenticationExecution`. Proven in-cluster on a disposable GKE cluster with the pinned stack
+(oasgen-provider 0.63.1 with the rdc snowplow/authn wiring, snowplow 1.12.67, authn 0.46.0, Keycloak
+26.6.3): the CRD generates with typed status (`roles` a string array), the role set converges, a role
+added and a role removed by hand are both reverted at the next reconcile, and deleting the CR (deletion
+policy `delete`) removes every held role and releases the finalizer once the get reads an empty list.
+After an update, Ready is set at once and `status.roles` catches up at the next observe. Offline: 30
+assertions in `tests/delegation`; live replay: `hack/validate-serviceaccountrolemapping-live.sh` (17).
+
+**Client lists are sets.** `KeycloakClient` `redirectUris`, `webOrigins`, `defaultClientScopes` and
+`optionalClientScopes` are `uniqueItems`: Keycloak keeps them as sets and returns them in its own order
+(measured: declared `[localhost, 127.0.0.1, zzz]` came back `[127.0.0.1, zzz, localhost]`), so a client
+with two or more redirect URIs was re-PUT on every reconcile until the controller latched
+`DriftNotConverging`. With sets (oasgen-provider >= 0.62.0 compares them as sets) the same client
+converges with no update. Still order-sensitive: `protocolMappers`, a list of objects, which the
+controller compares by position; a client declaring two or more mappers latches `DriftNotConverging`
+(the client itself is correct in Keycloak). That needs keyed comparison in rest-dynamic-controller.
+
 ## 2026-11-12 — 0.7.3: upgrades with `helm upgrade --reuse-values` from 0.6.0 work
 
 `helm upgrade --reuse-values` from 0.6.0 to 0.7.0, 0.7.1 or 0.7.2 failed: `nil pointer evaluating

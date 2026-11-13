@@ -56,10 +56,16 @@ components:
           type: string
         redirectUris:
           type: array
+          # A set: Keycloak keeps it as a Java Set and returns it in its own order, so it is compared
+          # as a set (oasgen-provider >= 0.62.0); a list compare re-PUTs the client on every reconcile.
+          uniqueItems: true
           items:
             type: string
         webOrigins:
           type: array
+          # A set: Keycloak keeps it as a Java Set and returns it in its own order, so it is compared
+          # as a set (oasgen-provider >= 0.62.0); a list compare re-PUTs the client on every reconcile.
+          uniqueItems: true
           items:
             type: string
         publicClient:
@@ -91,10 +97,16 @@ components:
           type: boolean
         defaultClientScopes:
           type: array
+          # A set: Keycloak keeps it as a Java Set and returns it in its own order, so it is compared
+          # as a set (oasgen-provider >= 0.62.0); a list compare re-PUTs the client on every reconcile.
+          uniqueItems: true
           items:
             type: string
         optionalClientScopes:
           type: array
+          # A set: Keycloak keeps it as a Java Set and returns it in its own order, so it is compared
+          # as a set (oasgen-provider >= 0.62.0); a list compare re-PUTs the client on every reconcile.
+          uniqueItems: true
           items:
             type: string
         attributes:
