@@ -1,5 +1,10 @@
 # Delegation-wiring static tests
 
+Two kinds delegate their lifecycle to Snowplow `RESTAction`s. `KeycloakServiceAccountRoleMapping`
+(three RESTActions: observe, apply, delete; see the second half of `run.py` and
+`fixtures/serviceaccountrolemapping.json`) has the same kind of offline assertions as the execution
+kind described below, and its live counterpart is `hack/validate-serviceaccountrolemapping-live.sh`.
+
 `KeycloakAuthenticationExecution` delegates its four lifecycle verbs to Snowplow
 `RESTAction`s (`observeApiRef`/`createApiRef`/`updateApiRef`/`deleteApiRef`, see
 `helm/keycloak-config-kog/templates/restactions-authenticationexecution.yaml`). The behaviour of

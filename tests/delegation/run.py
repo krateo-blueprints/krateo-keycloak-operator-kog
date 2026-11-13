@@ -319,6 +319,122 @@ check("subflow delete matched by alias -> delete-by-id",
       len(items) == 1 and items[0].get("id") == "flow-forms", items)
 
 
+
+# ===========================================================================
+# KeycloakServiceAccountRoleMapping (observe / apply / delete RESTActions)
+# ===========================================================================
+print()
+print("KeycloakServiceAccountRoleMapping")
+sras = {d["metadata"]["name"].split("-serviceaccountrolemapping-")[-1]: d
+        for d in docs if d.get("kind") == "RESTAction"
+        and "serviceaccountrolemapping" in d["metadata"]["name"]}
+check("rendered RESTActions observe/apply/delete", set(sras) == {"observe", "apply", "delete"}, sorted(sras))
+srd = next(d for d in docs if d.get("kind") == "RestDefinition"
+           and d["metadata"]["name"].endswith("serviceaccountrolemapping"))
+sres = srd["spec"]["resource"]
+S_NOT_FOUND = sres["observeApiRef"]["notFoundExpr"]["inline"]
+S_UP_TO_DATE = sres["observeApiRef"]["upToDateExpr"]["inline"]
+S_GET = next(v for v in sres["verbsDescription"] if v["action"] == "get")
+check("create and update both delegate to the apply RESTAction",
+      sres["createApiRef"]["name"] == sres["updateApiRef"]["name"] == "kog-serviceaccountrolemapping-apply",
+      (sres["createApiRef"]["name"], sres["updateApiRef"]["name"]))
+
+SF = json.load(open(os.path.join(FIXTURES, "serviceaccountrolemapping.json")))
+SSPEC = {"realm": "krateo", "clientId": "identity-lifecycle", "roleClientId": "realm-management",
+         "roles": ["manage-users", "view-users", "query-groups"]}
+SO = {s["name"]: s for s in sras["observe"]["spec"]["api"]}
+SA_ = {s["name"]: s for s in sras["apply"]["spec"]["api"]}
+SD = {s["name"]: s for s in sras["delete"]["spec"]["api"]}
+
+
+def sx(**stages):
+    """rdc extras (identifiers + whole spec) plus the given stage outputs."""
+    d = {"name": "il-roles", "namespace": "kogns", "realm": SSPEC["realm"], "clientId": SSPEC["clientId"],
+         "roleClientId": SSPEC["roleClientId"], "spec": SSPEC}
+    d.update(stages)
+    return d
+
+
+def sit(stage, **stages):
+    return jq(stage["dependsOn"]["iterator"], sx(**stages))
+
+
+# --- resolution chain: order is fixed by dependsOn, paths template from the item only
+check("observe chain order client -> rclient -> sa -> mapping",
+      [s["name"] for s in sras["observe"]["spec"]["api"]] == ["client", "rclient", "sa", "mapping"]
+      and SO["rclient"]["dependsOn"]["name"] == "client" and SO["sa"]["dependsOn"]["name"] == "rclient"
+      and SO["mapping"]["dependsOn"]["name"] == "sa")
+check("client lookup path is the exact clientId query",
+      jq(unwrap(SO["client"]["path"]), sx()) == "/admin/realms/krateo/clients?clientId=identity-lifecycle")
+items = sit(SO["sa"], client=SF["client"], rclient=SF["rclient"])
+check("sa iterator resolves the client id", items == [{"realm": "krateo", "id": "c-il"}], items)
+check("sa path", jq(unwrap(SO["sa"]["path"]), items[0]) == "/admin/realms/krateo/clients/c-il/service-account-user")
+items = sit(SO["sa"], client=[{"id": "c-x", "clientId": "identity-lifecycle-old"}], rclient=SF["rclient"])
+check("sa iterator: a near-miss clientId does not match (exact compare)", items == [], items)
+items = sit(SO["mapping"], client=SF["client"], rclient=SF["rclient"], sa=SF["sa"])
+check("mapping iterator", items == [{"realm": "krateo", "uid": "u-sa", "rid": "c-rm"}], items)
+check("mapping path", jq(unwrap(SO["mapping"]["path"]), items[0])
+      == "/admin/realms/krateo/users/u-sa/role-mappings/clients/c-rm")
+items = sit(SO["mapping"], client=SF["client"], rclient=SF["rclient"], saError=[{"code": 400}])
+check("mapping iterator: no service account (400) -> skipped", items == [], items)
+
+# --- observe compose + predicates
+OF = sras["observe"]["spec"]["filter"]
+st = jq(OF, sx(client=SF["client"], rclient=SF["rclient"], sa=SF["sa"], mapping=SF["mapping_exact"]))
+check("observe composes found/userId/roleClientUuid and SORTED roles",
+      st == {"found": True, "userId": "u-sa", "roleClientUuid": "c-rm",
+             "roles": ["manage-users", "query-groups", "view-users"]}, st)
+check("exact set (any declared order) -> found and up to date",
+      jq(S_NOT_FOUND, {"spec": SSPEC, "status": st}) is False and jq(S_UP_TO_DATE, {"spec": SSPEC, "status": st}) is True)
+st2 = jq(OF, sx(client=SF["client"], rclient=SF["rclient"], sa=SF["sa"], mapping=SF["mapping_partial_with_extra"]))
+check("missing + extra role -> drift", jq(S_UP_TO_DATE, {"spec": SSPEC, "status": st2}) is False, st2)
+st3 = jq(OF, sx(client=SF["client"], rclient=SF["rclient"], sa=SF["sa"], mapping=[]))
+check("no roles held yet -> found, drift (adopt then update)",
+      st3.get("found") is True and jq(S_UP_TO_DATE, {"spec": SSPEC, "status": st3}) is False, st3)
+for desc, kw in (("client not created yet", dict(client=[], rclient=SF["rclient"])),
+                 ("service accounts disabled (400)", dict(client=SF["client"], rclient=SF["rclient"], saError=[{"code": 400}])),
+                 ("unknown roleClientId", dict(client=SF["client"], rclient=[], sa=SF["sa"]))):
+    st4 = jq(OF, sx(**kw))
+    check(f"{desc} -> {{found:false}} -> notFound", st4 == {"found": False} and jq(S_NOT_FOUND, {"spec": SSPEC, "status": st4}) is True, st4)
+
+# --- apply: add exactly the missing ones (with ids), remove exactly the extra ones, same snapshot
+check("apply: resolution stages fail hard (no continueOnError before any mutation)",
+      all(not SA_[n].get("continueOnError") for n in ("client", "rclient", "sa", "available", "mapping")))
+base = dict(client=SF["client"], rclient=SF["rclient"], sa=SF["sa"], available=SF["available"])
+items = sit(SA_["add"], mapping=SF["mapping_partial_with_extra"], **base)
+check("add: POST body = the missing declared roles with ids",
+      len(items) == 1 and sorted(items[0]["roles"], key=lambda r: r["name"])
+      == [{"id": "r-mu", "name": "manage-users"}, {"id": "r-qg", "name": "query-groups"}], items)
+check("add: verb POST + payload is the role array", SA_["add"].get("verb") == "POST"
+      and jq(unwrap(SA_["add"]["payload"]), items[0]) == items[0]["roles"])
+items = sit(SA_["remove"], mapping=SF["mapping_partial_with_extra"], **base)
+check("remove: DELETE body = the extra held role only",
+      items == [{"realm": "krateo", "uid": "u-sa", "rid": "c-rm", "roles": [{"id": "r-mr", "name": "manage-realm"}]}], items)
+check("remove: verb DELETE, runs after add", SA_["remove"].get("verb") == "DELETE" and SA_["remove"]["dependsOn"]["name"] == "add")
+check("exact set -> add and remove both skipped",
+      sit(SA_["add"], mapping=SF["mapping_exact"], **base) == [] and sit(SA_["remove"], mapping=SF["mapping_exact"], **base) == [])
+spec_unknown = dict(SSPEC, roles=["manage-users", "no-such-role"])
+d = sx(mapping=[], **base); d["spec"] = spec_unknown
+items = jq(SA_["add"]["dependsOn"]["iterator"], d)
+check("add: an unknown role name is not sent (observe keeps reporting drift)",
+      len(items) == 1 and items[0]["roles"] == [{"id": "r-mu", "name": "manage-users"}], items)
+check("apply with no client yet -> every mutation skipped (no-op create)",
+      sit(SA_["add"], client=[], rclient=SF["rclient"], available=SF["available"]) == []
+      and sit(SA_["remove"], client=[], rclient=SF["rclient"]) == [])
+
+# --- delete: remove every held role of the role client; gone client -> no-op; get verifies
+items = sit(SD["del"], mapping=SF["mapping_exact"], client=SF["client"], rclient=SF["rclient"], sa=SF["sa"])
+check("delete: DELETE body = every held role",
+      len(items) == 1 and len(items[0]["roles"]) == 3 and SD["del"].get("verb") == "DELETE", items)
+check("delete: client already gone -> no-op", sit(SD["del"], client=[], rclient=SF["rclient"]) == [])
+check("delete: nothing held -> no-op", sit(SD["del"], mapping=[], client=SF["client"], rclient=SF["rclient"], sa=SF["sa"]) == [])
+NFB = S_GET["notFoundBody"]["inline"]
+check("get notFoundBody: [] = gone, roles held = present, non-array never reads as gone",
+      jq(NFB, []) is True and jq(NFB, SF["mapping_exact"]) is False and jq(NFB, {}) is False)
+check("get path params come from status",
+      {(m["inPath"], m["inCustomResource"]) for m in S_GET["fieldMapping"]}
+      == {("userId", "status.userId"), ("roleClientUuid", "status.roleClientUuid")})
+
 # ---------------------------------------------------------------------------
 print()
 if FAILS:

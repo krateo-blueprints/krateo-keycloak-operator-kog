@@ -50,9 +50,9 @@ be the same bytes.
 
 [`lint.yaml`](../.github/workflows/lint.yaml) runs on every PR and every push to `main`:
 
-- **`test`** — the `KeycloakAuthenticationExecution` **delegation-wiring tests**
-  (`tests/delegation`): they render the chart, extract the exact jq from the four Snowplow
-  `RESTAction`s, and assert the observe/create/update/delete stages against fixture payloads.
+- **`test`** — the **delegation-wiring tests** of `KeycloakAuthenticationExecution` and
+  `KeycloakServiceAccountRoleMapping` (`tests/delegation`): they render the chart, extract the exact
+  jq from their Snowplow `RESTAction`s, and assert every stage and predicate against fixture payloads.
   Fully offline, no Keycloak, no cluster. This is the `test` check-run release consumers look for.
 - **`lint`** — chart URL and status-field checks, a render with the keys added since 0.4.x absent
   (the `helm upgrade --reuse-values` shape), and the `values.schema.json` gate

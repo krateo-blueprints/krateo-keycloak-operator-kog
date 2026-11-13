@@ -367,6 +367,25 @@
               "default": "KeycloakAuthenticationExecution"
             }
           }
+        },
+        "serviceaccountrolemapping": {
+          "type": "object",
+          "title": "Service account role mapping",
+          "description": "KeycloakServiceAccountRoleMapping RestDefinition: the exact set of one client's roles held by another client's service-account user. Lifecycle verbs are delegated to Snowplow RESTActions because Keycloak has no set-replace call for role mappings and addresses both the service-account user and the role-owning client only by UUID. Requires the snowplow endpoint Secret (snowplow.endpointSecretName) and snowplow + authn wired into the rdc deployment.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "title": "Enabled",
+              "description": "Emit the KeycloakServiceAccountRoleMapping RestDefinition plus its backing RESTActions.",
+              "default": true
+            },
+            "kind": {
+              "type": "string",
+              "title": "Kind",
+              "description": "Kubernetes kind for the generated CRD.",
+              "default": "KeycloakServiceAccountRoleMapping"
+            }
+          }
         }
       }
     },
@@ -392,7 +411,7 @@
     "executionIdentity": {
       "type": "object",
       "title": "Execution identity",
-      "description": "Identity and least-privilege RBAC for the KeycloakAuthenticationExecution path: the authn ServiceAccount allowlist CR for its controller, get on only this chart's RESTActions, and get on only the Endpoint Secret for snowplow. Rendered only when restDefinitions.authenticationexecution is enabled. Requires the authn CRDs.",
+      "description": "Identity and least-privilege RBAC for the RESTAction-delegated kinds (KeycloakAuthenticationExecution, KeycloakServiceAccountRoleMapping): one authn ServiceAccount allowlist CR per enabled kind's controller, get on only that kind's RESTActions, and get on only the Endpoint Secret for snowplow. Rendered when at least one delegated kind is enabled. Requires the authn CRDs.",
       "properties": {
         "enabled": {
           "type": "boolean",

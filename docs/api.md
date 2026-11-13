@@ -77,6 +77,7 @@ Each resource CR references its Configuration via `spec.configurationRef`.
 | `KeycloakRequiredAction` | CRUD on `…/authentication/required-actions/{alias}` | natural key `alias`; base actions ship built-in (reconcile observes+updates) |
 | `KeycloakUserProfile` | GET + PUT on `…/users/profile` (0.7.0) | one per realm, no identifiers: adopts the realm's profile and replaces it whole; no create, no delete |
 | `KeycloakAuthenticationExecution` | delegated — see below | `(realm, flowAlias, provider \| alias)` |
+| `KeycloakServiceAccountRoleMapping` | delegated — see below (0.8.0) | `(realm, clientId, roleClientId)` |
 
 **Client secrets (`KeycloakClient`, `KeycloakIdentityProvider`).** Put a confidential client's secret, or an
 IdP's client secret (e.g. a GitHub OAuth app's), in a Secret in the CR's own namespace and reference it
@@ -119,6 +120,51 @@ Ordering is declarative: `spec.priority` is Keycloak's native ascending weight (
 spaced values, 10/20/30). The full delegation model is in
 [ARCHITECTURE.md](./ARCHITECTURE.md#authentication-flows--executions-mfa--acr), and the
 offline tests that assert the extracted jq are in `tests/delegation/`.
+
+## KeycloakServiceAccountRoleMapping — the delegated contract
+
+The exact set of one client's roles (`roleClientId`, e.g. `realm-management`) that another client's
+**service-account user** (`clientId`) holds as direct mappings. Keycloak has no call that replaces a
+role set (`POST …/role-mappings/clients/{id}` adds the roles in its body, `DELETE` with a body removes
+them) and addresses the service-account user and the role-owning client only by UUID, so the verbs
+are delegated to Snowplow `RESTAction`s (`rd-serviceaccountrolemapping.yaml` +
+`restactions-serviceaccountrolemapping.yaml`) that resolve both by `clientId`.
+
+```yaml
+apiVersion: keycloak.ogen.krateo.io/v1
+kind: KeycloakServiceAccountRoleMapping
+metadata:
+  name: identity-lifecycle-realm-admin
+spec:
+  configurationRef:
+    name: keycloak-admin
+    namespace: krateo-system
+  realm: krateo
+  clientId: identity-lifecycle      # needs serviceAccountsEnabled: true
+  roleClientId: realm-management
+  roles:
+    - manage-users
+    - view-users
+    - query-groups
+```
+
+- **Identifiers:** `realm`, `clientId`, `roleClientId` (create-only: changing one re-targets the
+  reconcile and leaves the old mappings in place).
+- **Status fields:** `found`, `userId`, `roleClientUuid`, `roles` (held, sorted).
+- **observe** — resolves the client, its service-account user and the role-owning client, reads the
+  direct mappings and composes `{found, userId, roleClientUuid, roles}`. Not found (the client is not
+  created yet, has no service account, or `roleClientId` does not exist) ⇒ create, a no-op until the
+  client exists. `upToDateExpr` compares the held and declared roles **as sets**.
+- **create / update** — one RESTAction: `POST` the declared roles that are missing (with the ids
+  Keycloak requires), then `DELETE` the held roles that are not declared, from one snapshot. A role
+  name that does not exist on `roleClientId` cannot be granted and keeps the CR unready.
+- **delete** — removes **every** direct mapping of `roleClientId`'s roles from the service account
+  (the CR owns that set), then a finalizer-verified `GET` of the mappings must answer an empty list
+  (`notFoundBody`) or 404 (the client, and with it its service account, is gone).
+
+Same deployment requirements as `KeycloakAuthenticationExecution`: Snowplow + authn wired into the
+rest-dynamic-controller deployment and the Endpoint Secret (`snowplow.endpointSecretName`). The chart
+renders the controller's authn allowlist CR and least-privilege RBAC (`executionIdentity`).
 
 ## Authentication & ACR fields
 

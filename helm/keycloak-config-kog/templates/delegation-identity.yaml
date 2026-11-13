@@ -1,72 +1,85 @@
 {{- $kogRD := include "keycloak-config-kog.restDefinitions" . | fromYaml }}
 {{- /* Default ON when the key is absent: a release upgraded with --reuse-values from a version
-     without `executionIdentity` must still render what its execution path needs. */ -}}
+     without `executionIdentity` must still render what its delegated paths need. */ -}}
 {{- $ei := .Values.executionIdentity | default dict }}
-{{- if and $kogRD.authenticationexecution.enabled (ne (toString $ei.enabled) "false") }}
 {{- /*
-What the KeycloakAuthenticationExecution path needs beyond its RestDefinition and RESTActions, so
-nobody applies it by hand:
+What each RESTAction-delegated kind needs beyond its RestDefinition and RESTActions, so nobody
+applies it by hand. The delegated kinds are KeycloakAuthenticationExecution (four RESTActions:
+observe/create/update/delete) and KeycloakServiceAccountRoleMapping (three: observe/apply/delete).
+For every enabled one:
 
-  1. an authn ServiceAccount allowlist CR: the execution controller may exchange its projected
+  1. an authn ServiceAccount allowlist CR: the kind's controller may exchange its projected
      (audience authn) token for an authn identity in group krateo:rdc;
-  2. that identity may `get` ONLY the four RESTActions this chart ships;
+  2. that group may `get` ONLY the RESTActions this chart ships for the kind;
+and once for all of them:
   3. snowplow, which resolves those RESTActions' endpointRef, may `get` ONLY the Endpoint Secret.
 
 The controller's ServiceAccount name is oasgen-provider's convention for the generated kind:
 <lowercase kind>s-<resourceGroup>-v1alpha1 (verified live: keycloakauthenticationexecutions-
 keycloak.ogen.krateo.io-v1alpha1). authn's issued username is this CR's metadata.name, so it is the
-same string.
+same string. Object names are per kind and unchanged from the execution-only template, so an upgrade
+keeps them.
 */ -}}
-{{- $sa := printf "%ss-%s-v1alpha1" (lower $kogRD.authenticationexecution.kind) .Values.resourceGroup }}
+{{- $delegated := list }}
+{{- if $kogRD.authenticationexecution.enabled }}
+{{- $delegated = append $delegated (dict "key" "authenticationexecution" "kind" $kogRD.authenticationexecution.kind "actions" (list "observe" "create" "update" "delete")) }}
+{{- end }}
+{{- if $kogRD.serviceaccountrolemapping.enabled }}
+{{- $delegated = append $delegated (dict "key" "serviceaccountrolemapping" "kind" $kogRD.serviceaccountrolemapping.kind "actions" (list "observe" "apply" "delete")) }}
+{{- end }}
+{{- if and $delegated (ne (toString $ei.enabled) "false") }}
 {{- $group := $ei.group | default "krateo:rdc" }}
+{{- range $d := $delegated }}
+{{- $sa := printf "%ss-%s-v1alpha1" (lower $d.kind) $.Values.resourceGroup }}
+---
 apiVersion: serviceaccount.authn.krateo.io/v1alpha1
 kind: ServiceAccount
 metadata:
   name: {{ $sa }}
   labels:
-    {{- include "keycloak-config-kog.labels" . | nindent 4 }}
+    {{- include "keycloak-config-kog.labels" $ | nindent 4 }}
 spec:
-  displayName: {{ $kogRD.authenticationexecution.kind }} controller
+  displayName: {{ $d.kind }} controller
   principal: controller
   groups:
     - {{ $group }}
   serviceAccountRef:
     name: {{ $sa }}
-    namespace: {{ .Release.Namespace }}
+    namespace: {{ $.Release.Namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ .Release.Name }}-authenticationexecution-restactions
+  name: {{ $.Release.Name }}-{{ $d.key }}-restactions
   labels:
-    {{- include "keycloak-config-kog.labels" . | nindent 4 }}
+    {{- include "keycloak-config-kog.labels" $ | nindent 4 }}
 rules:
   - apiGroups:
       - templates.krateo.io
     resources:
       - restactions
     resourceNames:
-      - {{ .Release.Name }}-authenticationexecution-observe
-      - {{ .Release.Name }}-authenticationexecution-create
-      - {{ .Release.Name }}-authenticationexecution-update
-      - {{ .Release.Name }}-authenticationexecution-delete
+      {{- range $a := $d.actions }}
+      - {{ $.Release.Name }}-{{ $d.key }}-{{ $a }}
+      {{- end }}
     verbs:
       - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ .Release.Name }}-authenticationexecution-restactions
+  name: {{ $.Release.Name }}-{{ $d.key }}-restactions
   labels:
-    {{- include "keycloak-config-kog.labels" . | nindent 4 }}
+    {{- include "keycloak-config-kog.labels" $ | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ .Release.Name }}-authenticationexecution-restactions
+  name: {{ $.Release.Name }}-{{ $d.key }}-restactions
 subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
     name: {{ $group }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
