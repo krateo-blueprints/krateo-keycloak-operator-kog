@@ -24,8 +24,9 @@ timestamp: 2026-08-11T00:00:00Z
 - A service-account client in Keycloak (`krateo-kog` by default) with
   `serviceAccountsEnabled` and the `realm-management` roles for the resources you
   manage.
-- For the `KeycloakAuthenticationExecution` surface only: Snowplow + authn wired into
-  the rdc deployment (`URL_SNOWPLOW`/`URL_AUTHN` + a projected authn token).
+- For the delegated kinds only (`KeycloakAuthenticationExecution`,
+  `KeycloakServiceAccountRoleMapping`): Snowplow + authn wired into the rdc deployment
+  (`URL_SNOWPLOW`/`URL_AUTHN` + a projected authn token).
 
 ## Install with Helm
 

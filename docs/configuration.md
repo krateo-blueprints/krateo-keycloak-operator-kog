@@ -82,6 +82,7 @@ avoid crdgen collisions with same-named lowercase body properties (the Nova KOG'
 | `requiredaction` | `KeycloakRequiredAction` | `true` |
 | `userprofile` | `KeycloakUserProfile` | `true` |
 | `authenticationexecution` | `KeycloakAuthenticationExecution` | `true` |
+| `serviceaccountrolemapping` | `KeycloakServiceAccountRoleMapping` | `true` |
 
 `KeycloakUser` requires oasgen-provider **>= 0.56.0** (the release ships
 rest-dynamic-controller at the same version). 0.56.0 is the first release that both
@@ -138,13 +139,14 @@ resource you do not need by setting `restDefinitions.<key>.enabled: false`.
 
 ## Snowplow delegation (`snowplow.*`)
 
-Used by `restDefinitions.authenticationexecution` **only**. Keycloak's executions API
-is create-then-mutate, so that resource delegates its lifecycle verbs to Snowplow
-`RESTAction`s.
+Used by the two delegated kinds, `restDefinitions.authenticationexecution` and
+`restDefinitions.serviceaccountrolemapping`. Keycloak's executions API is create-then-mutate, and its
+role-mapping API has no set-replace call, so those resources delegate their lifecycle verbs to
+Snowplow `RESTAction`s.
 
 | key | default | effect |
 |---|---|---|
-| `snowplow.endpointSecretName` | `keycloak-admin-endpoint` | the Snowplow Endpoint-shaped Secret (keys: `server-url`, `token`) the `KeycloakAuthenticationExecution` RESTActions call Keycloak through. Rendered in the release namespace by `templates/externalsecret.yaml` (same rotated admin token as `auth.secretName`). If `auth.externalSecret.enabled` is `false`, supply this Secret yourself. |
+| `snowplow.endpointSecretName` | `keycloak-admin-endpoint` | the Snowplow Endpoint-shaped Secret (keys: `server-url`, `token`) the `KeycloakAuthenticationExecution` and `KeycloakServiceAccountRoleMapping` RESTActions call Keycloak through. Rendered in the release namespace by `templates/externalsecret.yaml` (same rotated admin token as `auth.secretName`). If `auth.externalSecret.enabled` is `false`, supply this Secret yourself. |
 
 This surface additionally requires Snowplow + authn wired into the rdc deployment
 (`URL_SNOWPLOW`/`URL_AUTHN` + a projected authn token) — the stock oasgen rdc
@@ -152,9 +154,9 @@ templates do **not** set these.
 
 ## Execution identity (`executionIdentity.*`)
 
-`KeycloakAuthenticationExecution` delegates its lifecycle to Snowplow `RESTAction`s, and its
-controller authenticates to snowplow through authn. When `restDefinitions.authenticationexecution`
-is enabled, the chart renders what that needs, so nothing is applied by hand:
+`KeycloakAuthenticationExecution` and `KeycloakServiceAccountRoleMapping` delegate their lifecycle to
+Snowplow `RESTAction`s, and their controllers authenticate to snowplow through authn. For each of the
+two that is enabled, the chart renders what that needs, so nothing is applied by hand:
 
 | key | default | effect |
 |---|---|---|
@@ -162,9 +164,10 @@ is enabled, the chart renders what that needs, so nothing is applied by hand:
 | `executionIdentity.group` | `krateo:rdc` | authn group the controller's identity joins. |
 | `executionIdentity.snowplowServiceAccount.name` / `.namespace` | `snowplow` / release namespace | snowplow's ServiceAccount. |
 
-- an authn `ServiceAccount` allowlist CR for the execution controller, named the way oasgen names
-  its ServiceAccount (`<lowercase kind>s-<resourceGroup>-v1alpha1`);
-- a Role granting `get` on **only** this chart's four RESTActions, bound to that group;
+- an authn `ServiceAccount` allowlist CR for the kind's controller, named the way oasgen names its
+  ServiceAccount (`<lowercase kind>s-<resourceGroup>-v1alpha1`);
+- a Role granting `get` on **only** this chart's RESTActions of that kind (four for executions, three
+  for service-account role mappings), bound to that group;
 - a Role letting snowplow `get` **only** the Endpoint Secret (`snowplow.endpointSecretName`).
 
 Verified live: with these objects removed, the execution controller is refused by authn (`403 no

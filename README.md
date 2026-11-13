@@ -32,9 +32,9 @@ Two design decisions define it:
 Resources exposed (`keycloak.ogen.krateo.io/v1`; each `<Kind>Configuration` is `v1alpha1`): `KeycloakRealm`,
 `KeycloakClient`, `KeycloakProtocolMapper`, `KeycloakClientScope`, `KeycloakGroup`,
 `KeycloakUser`, `KeycloakIdentityProvider`, `KeycloakIdentityProviderMapper`,
-`KeycloakAuthenticationFlow`, `KeycloakRequiredAction`, and
-`KeycloakAuthenticationExecution` (whose lifecycle is delegated to Snowplow
-`RESTAction`s). See [docs/overview.md](docs/overview.md) and
+`KeycloakAuthenticationFlow`, `KeycloakRequiredAction`, `KeycloakUserProfile`, and the two kinds
+whose lifecycle is delegated to Snowplow `RESTAction`s: `KeycloakAuthenticationExecution` and
+`KeycloakServiceAccountRoleMapping`. See [docs/overview.md](docs/overview.md) and
 [docs/api.md](docs/api.md).
 
 ## Install
@@ -65,7 +65,8 @@ Or install as a Krateo Composition (`compositiondefinition.yaml` +
 Everything is `chart/values.yaml`, typed by `chart/values.schema.json`. The top-level
 keys are `keycloak` (the target `baseUrl`), `auth` (the ESO-minted admin token),
 `restDefinitions` (which resource CRDs to emit — each `enabled` by default),
-`snowplow` (delegation for `KeycloakAuthenticationExecution`), and `resourceGroup`.
+`snowplow` (delegation for `KeycloakAuthenticationExecution` and
+`KeycloakServiceAccountRoleMapping`), and `resourceGroup`.
 To debug one resource, annotate it with `krateo.io/connector-verbose: "true"`. The full
 surface is documented in
 [docs/configuration.md](docs/configuration.md).
@@ -108,8 +109,8 @@ the source of truth: edit the asset to change a kind's field surface (see
 
 CI ([`lint.yaml`](.github/workflows/lint.yaml)) runs on every PR and every push to `main`:
 
-- **`test`** — the offline `KeycloakAuthenticationExecution` delegation-wiring tests
-  (`tests/delegation`).
+- **`test`** — the offline delegation-wiring tests of `KeycloakAuthenticationExecution` and
+  `KeycloakServiceAccountRoleMapping` (`tests/delegation`).
 - **`lint`** — render checks (chart URLs, status fields, keys added since 0.4.x absent) and the
   `values.schema.json` gate (`hack/check-schema-required.py`).
 - **`lint-docs`** — the shared Krateo docs-standard linter.

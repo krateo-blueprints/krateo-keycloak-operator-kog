@@ -38,3 +38,6 @@ userprofile:
 authenticationexecution:
   enabled: true
   kind: KeycloakAuthenticationExecution
+serviceaccountrolemapping:
+  enabled: true
+  kind: KeycloakServiceAccountRoleMapping

@@ -36,6 +36,8 @@ blueprint stands up. The full design is in [ARCHITECTURE.md](./ARCHITECTURE.md).
 | `configmaps.yaml` | `ConfigMap` | the curated OAS subset for that resource (`assets/<key>.yaml`), with `servers[0].url` templated from `keycloak.baseUrl` |
 | `externalsecret.yaml` | `Webhook` generator + `ExternalSecret` | ESO minting/rotating the short-lived admin bearer token into the `keycloak-admin-token` Secret |
 | `restactions-authenticationexecution.yaml` | four Snowplow `RESTAction`s | the delegated observe/create/update/delete for `KeycloakAuthenticationExecution` |
+| `restactions-serviceaccountrolemapping.yaml` | three Snowplow `RESTAction`s | the delegated observe, apply (create and update) and delete for `KeycloakServiceAccountRoleMapping` |
+| `delegation-identity.yaml` | authn `ServiceAccount` CRs + Roles | each delegated kind's controller identity, `get` on only its RESTActions, snowplow `get` on only the Endpoint Secret |
 
 Each `RestDefinition` maps 1:1 to a hand-curated OAS subset in
 `helm/keycloak-config-kog/assets/<key>.yaml`. The curated schemas use field names verbatim from
@@ -62,6 +64,7 @@ resource kinds are served as `keycloak.ogen.krateo.io/v1` (the version is each O
 | `KeycloakRequiredAction` | required-action provider (`CONFIGURE_TOTP`, `webauthn-register`, …) | natural key `alias` (direct) |
 | `KeycloakUserProfile` | a realm's declarative user profile (attributes, who may view/edit them, validators) | one per realm (`realm` is the key); adopt-then-replace, never created or deleted |
 | `KeycloakAuthenticationExecution` | one execution/subflow **inside** a flow | `(realm, flowAlias, provider \| alias)` via delegated Snowplow `RESTAction`s |
+| `KeycloakServiceAccountRoleMapping` | the exact set of one client's roles held by another client's service account | `(realm, clientId, roleClientId)` via delegated Snowplow `RESTAction`s |
 
 For **UUID-addressed** resources (client/group/client-scope/mapper/user) `findby`
 lists the collection and matches the natural key (`clientId`/`name`/`username`) to
@@ -114,6 +117,11 @@ priority drift converges by delete + re-create. This surface requires Snowplow +
 wired into the rdc deployment (`URL_SNOWPLOW`/`URL_AUTHN`). See
 [ARCHITECTURE.md](./ARCHITECTURE.md#authentication-flows--executions-mfa--acr) and
 [configuration](./configuration.md).
+
+`KeycloakServiceAccountRoleMapping` (0.8.0) is delegated the same way, for a different reason:
+Keycloak has no call that replaces a role set and addresses a client's service-account user only by
+UUID, so its RESTActions resolve both by `clientId`, add the missing roles and remove the extra ones.
+Same Snowplow + authn requirement. See [api](./api.md).
 
 ## Authentication & MFA
 

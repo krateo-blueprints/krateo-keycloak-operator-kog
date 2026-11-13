@@ -110,24 +110,33 @@ restDefinitions:
   authenticationexecution:
     enabled: true
     kind: KeycloakAuthenticationExecution
+  # The EXACT set of one client's roles held by another client's service-account user (e.g.
+  # identity-lifecycle's service account holding realm-management manage-users, view-users,
+  # query-groups). Keycloak has no set-replace call, so this delegates to Snowplow RESTActions the
+  # same way as authenticationexecution, with the same requirements (snowplow + authn wired into the
+  # rdc deployment, and the Endpoint Secret below).
+  serviceaccountrolemapping:
+    enabled: true
+    kind: KeycloakServiceAccountRoleMapping
 
 # ---------------------------------------------------------------------------
-# Snowplow delegation (used by restDefinitions.authenticationexecution only)
+# Snowplow delegation (used by restDefinitions.authenticationexecution and serviceaccountrolemapping)
 # ---------------------------------------------------------------------------
 snowplow:
   # Name of the snowplow Endpoint-shaped Secret (keys: server-url, token) the
-  # KeycloakAuthenticationExecution RESTActions call Keycloak through. Rendered
+  # KeycloakAuthenticationExecution and KeycloakServiceAccountRoleMapping RESTActions call Keycloak
+  # through. Rendered
   # in the release namespace by templates/externalsecret.yaml (same rotated
   # admin token as auth.secretName). If auth.externalSecret.enabled is false,
   # supply this Secret yourself.
   endpointSecretName: keycloak-admin-endpoint
 
 # ---------------------------------------------------------------------------
-# Identity + RBAC for the KeycloakAuthenticationExecution path (rendered only when
-# restDefinitions.authenticationexecution is enabled). The execution controller authenticates to
-# snowplow through authn, so the chart renders its authn ServiceAccount allowlist CR (requires the
-# authn CRDs) and least-privilege Roles: the identity may get ONLY this chart's four RESTActions,
-# and snowplow may get ONLY the Endpoint Secret.
+# Identity + RBAC for the RESTAction-delegated kinds (KeycloakAuthenticationExecution and
+# KeycloakServiceAccountRoleMapping; rendered for each one that is enabled). Their controllers
+# authenticate to snowplow through authn, so the chart renders one authn ServiceAccount allowlist CR
+# per controller (requires the authn CRDs) and least-privilege Roles: the identities may get ONLY
+# this chart's RESTActions of their kind, and snowplow may get ONLY the Endpoint Secret.
 # ---------------------------------------------------------------------------
 executionIdentity:
   enabled: true
