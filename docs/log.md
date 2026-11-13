@@ -11,6 +11,19 @@ timestamp: 2026-08-11T00:00:00Z
 
 Curated history; release notes live in GitHub Releases.
 
+## 2026-11-13 — status fields audited against a live Keycloak (CI)
+
+rest-dynamic-controller skips a declared status field the server does not return without any error, so
+a field that can never populate looks like a working one on a Ready CR (found in another KOG: a Nova
+field gated behind a microversion). `hack/audit-status-fields-live.py` reads every non-delegated kind's
+`additionalStatusFields` and get/findby paths from the rendered RestDefinitions, creates one object per
+kind and checks each field in the get response and the findby item. Against Keycloak 26.6.3 all ten
+are returned, except `KeycloakUserProfile.unmanagedAttributePolicy`, which Keycloak omits until a
+policy is set (measured: absent unset, `ADMIN_VIEW` once set) and is documented as conditional. It runs
+in CI (`status-fields`, a throwaway Keycloak container), so a Keycloak bump that drops a field fails a
+check instead of going quiet. Delegated kinds compose their status in RESTActions and stay covered by
+`tests/delegation`.
+
 ## 2026-11-13 — 0.8.1: the token endpoint follows `keycloak.baseUrl`
 
 `auth.externalSecret.tokenEndpoint` defaults to empty, meaning `<keycloak.baseUrl>/realms/master/protocol/openid-connect/token`.

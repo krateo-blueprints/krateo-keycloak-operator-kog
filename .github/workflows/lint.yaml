@@ -45,6 +45,35 @@ jobs:
           jq --version
           python3 tests/delegation/run.py
 
+  # Gating. rest-dynamic-controller skips a declared status field the server does not return, silently:
+  # no error, event or log. The OAS and the RestDefinition can agree and both be wrong about Keycloak.
+  # This asks a real Keycloak (the version the chart targets) for every non-delegated kind's declared
+  # additionalStatusFields; a Keycloak bump that drops one fails here instead of going quiet.
+  status-fields:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Start Keycloak 26.6.3 (start-dev, throwaway)
+        run: |
+          set -euo pipefail
+          docker run -d --name kc -p 8081:8080 \
+            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=ci-only-admin \
+            quay.io/keycloak/keycloak:26.6.3 start-dev
+          for i in $(seq 1 60); do curl -sf http://localhost:8081/realms/master >/dev/null && exit 0; sleep 3; done
+          docker logs kc | tail -30; exit 1
+
+      - name: Audit status fields (hack/audit-status-fields-live.py)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          printf %s ci-only-admin > "$RUNNER_TEMP/kc.pass"
+          KC_URL=http://localhost:8081 KC_ADMIN_PASS_FILE="$RUNNER_TEMP/kc.pass" python3 hack/audit-status-fields-live.py
+
   lint:
     runs-on: ubuntu-latest
     steps:
