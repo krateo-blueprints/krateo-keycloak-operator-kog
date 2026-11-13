@@ -102,6 +102,12 @@ jobs:
           python3 -m pip install --quiet pyyaml
           python3 hack/check-reuse-values.py
 
+      - name: Gate the ESO token endpoint (follows keycloak.baseUrl unless set)
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pyyaml
+          python3 hack/check-token-endpoint.py
+
       - name: Gate values.schema.json (every values.yaml key is declared)
         run: |
           set -euo pipefail

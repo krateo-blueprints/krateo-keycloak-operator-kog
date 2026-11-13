@@ -31,7 +31,10 @@ auth:
       kind: Webhook
       name: keycloak-admin-token-webhook
     # client_credentials inputs the Generator/Webhook uses to mint the token.
-    tokenEndpoint: "http://keycloak-service.keycloak-system.svc.cluster.local:8080/realms/master/protocol/openid-connect/token"
+    # Empty (the default) = <keycloak.baseUrl>/realms/master/protocol/openid-connect/token, so the token
+    # and the admin calls always go to the same Keycloak (including a path prefix in baseUrl, e.g. a
+    # Keycloak served under /keycloak). Set it only to mint the token somewhere else.
+    tokenEndpoint: ""
     clientId: "krateo-kog"
     # The client secret itself comes from a pre-existing Secret (not in values).
     # Ignored when auth.bootstrap.enabled: the client id and secret then come from the

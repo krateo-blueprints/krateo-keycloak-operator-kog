@@ -79,8 +79,8 @@
             "tokenEndpoint": {
               "type": "string",
               "title": "Token endpoint",
-              "description": "Keycloak OpenID Connect token endpoint the generator POSTs the client_credentials grant to.",
-              "default": "http://keycloak-service.keycloak-system.svc.cluster.local:8080/realms/master/protocol/openid-connect/token"
+              "description": "Keycloak's client_credentials token endpoint the generator POSTs to. Empty (the default) = <keycloak.baseUrl>/realms/master/protocol/openid-connect/token, so the token comes from the Keycloak the controllers call.",
+              "default": ""
             },
             "clientId": {
               "type": "string",
