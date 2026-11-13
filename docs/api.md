@@ -79,6 +79,13 @@ Each resource CR references its Configuration via `spec.configurationRef`.
 | `KeycloakAuthenticationExecution` | delegated — see below | `(realm, flowAlias, provider \| alias)` |
 | `KeycloakServiceAccountRoleMapping` | delegated — see below (0.8.0) | `(realm, clientId, roleClientId)` |
 
+**Status fields are what Keycloak returns.** Each kind's `additionalStatusFields` are copied from the
+observe response, and rest-dynamic-controller skips an absent field silently, so CI
+(`hack/audit-status-fields-live.py`, job `status-fields`) checks every declared field against a real
+Keycloak 26.6.3. All are server-assigned ids and always present, with one conditional field:
+`KeycloakUserProfile` `status.unmanagedAttributePolicy` is returned only once a policy is set, so an
+empty value means unset (unmanaged attributes disabled), not "not observed yet".
+
 **Client secrets (`KeycloakClient`, `KeycloakIdentityProvider`).** Put a confidential client's secret, or an
 IdP's client secret (e.g. a GitHub OAuth app's), in a Secret in the CR's own namespace and reference it
 with `spec.clientSecretRef: {name, key}`. The controller writes its value into the client's `secret` /
