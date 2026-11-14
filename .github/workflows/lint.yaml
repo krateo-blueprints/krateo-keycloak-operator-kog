@@ -71,6 +71,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m pip install --quiet pyyaml
+          python3 hack/audit-status-fields-live.py --selftest
           printf %s ci-only-admin > "$RUNNER_TEMP/kc.pass"
           KC_URL=http://localhost:8081 KC_ADMIN_PASS_FILE="$RUNNER_TEMP/kc.pass" python3 hack/audit-status-fields-live.py
 

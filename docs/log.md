@@ -23,6 +23,11 @@ policy is set (measured: absent unset, `ADMIN_VIEW` once set) and is documented 
 in CI (`status-fields`, a throwaway Keycloak container), so a Keycloak bump that drops a field fails a
 check instead of going quiet. Delegated kinds compose their status in RESTActions and stay covered by
 `tests/delegation`.
+Hardened after a review by aruba-provider-kog: every field gets one verdict (`ok`, `ABSENT`, `NOT-MEASURED`
+for a failed question such as a non-2xx get or an unresolved path parameter, `cond`, or `STALE` for an
+exemption that no longer holds), findby reports `NOT-CHECKED(<reason>)` rather than a silent skip, the
+run prints its denominator and fails on zero fields or a kind without a fixture, kinds are reconciled
+before anything is created, and teardown runs in `finally`. `--selftest` drives each verdict offline.
 
 ## 2026-11-13 — 0.8.1: the token endpoint follows `keycloak.baseUrl`
 
