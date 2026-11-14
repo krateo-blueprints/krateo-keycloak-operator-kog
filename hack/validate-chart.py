@@ -87,6 +87,8 @@ def selftest_chart_urls(repo_root):
                           f"so its silence means nothing")
         if not must_refuse and got is not None:
             errors.append(f"self-test: the URL check refuses a legitimate {field}={url!r}: {got}")
+    refused = sum(1 for _f, _u, m in cases if m)
+    print(f"self-test: URL check ran {len(cases)} cases ({refused} must-refuse, {len(cases) - refused} must-accept)")
     return errors
 
 
@@ -224,6 +226,9 @@ def selftest_status_fields():
     e, n = check_status_fields(docs(["doesNotExist"]))
     if not e:
         errors.append("self-test: the status-field check ACCEPTS a field absent from the schema, so its silence means nothing")
+    else:
+        # Printed so a pass is distinguishable from an arm that never ran.
+        print(f"self-test: status-field check accepted a present field and refused an absent one ({e[0][:90]}...)")
     return errors
 
 
