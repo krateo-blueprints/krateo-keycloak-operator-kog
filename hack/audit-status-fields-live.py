@@ -14,10 +14,13 @@ Delegated kinds (observeApiRef) compose their status in a RESTAction and are cov
 tests/delegation instead.
 
 Every field gets exactly one verdict:
-  ok             present in the get response (and in the findby item, or findby says why it was not checked)
+  ok             present in the get response and in the findby item; findby is NOT-CHECKED only when the
+                 kind has no findby verb or the response carries no identifier to match on
   ABSENT         the server answered 200 and the field is not there              -> fails
-  NOT-MEASURED   the question failed (non-2xx, unresolved path parameter, ...)   -> fails: a failed
-                 question is not a negative answer, and not a positive one either
+  NOT-MEASURED   the question failed (non-2xx get or findby, unresolved path parameter) -> fails: a
+                 failed question is not a negative answer, and not a positive one either
+  FINDBY-MISS    the object is not exactly once in its own findby listing          -> fails (adoption would
+                 create or duplicate)
   cond           listed in CONDITIONAL and absent, as the exemption predicts
   STALE          listed in CONDITIONAL but present: the exemption no longer holds -> fails
 The run fails when any field is ABSENT / NOT-MEASURED / STALE, when a non-delegated kind has no fixture,
@@ -66,6 +69,10 @@ def audit_kind(kind, res, params, call):
         return [("NOT-MEASURED", f"{kind}.{f}: get answered HTTP {st} ({type(got).__name__}), so nothing was measured")
                 for f in fields]
     # findby: locate the item matching the object by one of the kind's identifiers.
+    # A NOT-CHECKED excuse must be a property of the definition (no findby verb) or of the response (no
+    # identifier to match on), never of a failed request: that is NOT-MEASURED, as on the get side. An
+    # object missing from its own findby listing is a negative answer (FINDBY-MISS): it is how adoption
+    # fails, and with one object per kind in a scratch realm pagination cannot explain it.
     find_item, find_why = None, None
     if "findby" not in verbs:
         find_why = "kind has no findby verb"
@@ -73,17 +80,19 @@ def audit_kind(kind, res, params, call):
         fpath = substitute(verbs["findby"]["path"], params)
         ident = next((i for i in (res.get("identifiers") or []) if i in got), None)
         if "{" in fpath:
-            find_why = f"findby path has an unresolved parameter: {fpath}"
-        elif ident is None:
+            return [("NOT-MEASURED", f"{kind}.{f}: findby path still has an unresolved parameter: {fpath}") for f in fields]
+        if ident is None:
             find_why = f"none of the identifiers {res.get('identifiers')} is in the get response"
         else:
             fst, lst = call("GET", fpath)
             if not (200 <= fst < 300) or not isinstance(lst, list):
-                find_why = f"findby answered HTTP {fst} ({type(lst).__name__})"
-            else:
-                find_item = next((x for x in lst if isinstance(x, dict) and x.get(ident) == got.get(ident)), None)
-                if find_item is None:
-                    find_why = f"no findby item with {ident}={got.get(ident)!r}"
+                return [("NOT-MEASURED", f"{kind}.{f}: findby answered HTTP {fst} ({type(lst).__name__}), so it was not measured")
+                        for f in fields]
+            matches = [x for x in lst if isinstance(x, dict) and x.get(ident) == got.get(ident)]
+            if len(matches) != 1:
+                return [("FINDBY-MISS", f"{kind}.{f}: findby listing has {len(matches)} item(s) with {ident}={got.get(ident)!r}, "
+                                        f"want exactly 1 (adoption would create or duplicate)") for f in fields]
+            find_item = matches[0]
     for f in fields:
         in_get = dig(got, f)
         if find_item is not None:
@@ -104,7 +113,7 @@ def audit_kind(kind, res, params, call):
     return out
 
 
-FAILING = {"ABSENT", "NOT-MEASURED", "STALE"}
+FAILING = {"ABSENT", "NOT-MEASURED", "STALE", "FINDBY-MISS"}
 
 
 def summarize(results, n_kinds, delegated, none_declared, missing_fixtures):
@@ -121,7 +130,7 @@ def summarize(results, n_kinds, delegated, none_declared, missing_fixtures):
     if checked == 0:
         print("CHECKED ZERO FIELDS: the render or the walk is broken; a fleet zero is not a pass")
     if bad:
-        print(f"FAILED: {len(bad)} field(s) ABSENT / NOT-MEASURED / STALE")
+        print(f"FAILED: {len(bad)} field(s) ABSENT / NOT-MEASURED / STALE / FINDBY-MISS")
     if bad or missing_fixtures or checked == 0:
         return 1
     print("Every declared status field is returned by this Keycloak (conditional ones listed above).")
@@ -241,7 +250,11 @@ def selftest():
         ("absent from the findby item -> ABSENT", "K", res, pr, fake((200, obj), (200, [{"name": "n"}])), "ABSENT"),
         ("get 404 -> NOT-MEASURED, not ABSENT", "K", res, pr, fake((404, "not found"), (200, [obj])), "NOT-MEASURED"),
         ("unresolved path parameter -> NOT-MEASURED", "K", res, {"realm": "r"}, fake((200, obj), (200, [obj])), "NOT-MEASURED"),
-        ("findby 500 -> ok with findby NOT-CHECKED", "K", res, pr, fake((200, obj), (500, "boom")), "ok"),
+        ("findby 500 -> NOT-MEASURED (a failed request is never an excuse)", "K", res, pr, fake((200, obj), (500, "boom")), "NOT-MEASURED"),
+        ("object missing from its own findby listing -> FINDBY-MISS", "K", res, pr, fake((200, obj), (200, [{"id": "2", "name": "other"}])), "FINDBY-MISS"),
+        ("two findby items match -> FINDBY-MISS (duplicate)", "K", res, pr, fake((200, obj), (200, [obj, obj])), "FINDBY-MISS"),
+        ("no identifier in the get response -> ok, findby NOT-CHECKED", "K", res, pr, fake((200, {"id": "1"}), (200, [obj])), "ok"),
+        ("kind without a findby verb -> ok, findby NOT-CHECKED", "K", dict(res, verbsDescription=res["verbsDescription"][:1]), pr, fake((200, obj), (500, "never called")), "ok"),
         ("conditional and absent -> cond", "KeycloakUserProfile",
          dict(res, additionalStatusFields=["unmanagedAttributePolicy"]), pr, fake((200, obj), (200, [obj])), "cond"),
         ("conditional but present -> STALE", "KeycloakUserProfile",
@@ -254,9 +267,9 @@ def selftest():
         verdict = got[0][0] if got else None
         if verdict != want:
             errors.append(f"self-test '{desc}': verdict {verdict}, want {want}: {got}")
-    findby_skip = audit_kind("K", res, pr, fake((200, obj), (500, "boom")))[0][1]
-    if "NOT-CHECKED" not in findby_skip:
-        errors.append(f"self-test: a findby that was not checked must say so: {findby_skip}")
+    findby_skip = audit_kind("K", dict(res, verbsDescription=res["verbsDescription"][:1]), pr, fake((200, obj), (500, "x")))[0][1]
+    if "NOT-CHECKED(kind has no findby verb)" not in findby_skip:
+        errors.append(f"self-test: a findby that was not checked must say why: {findby_skip}")
     # Exit codes through the same summarize the live run uses (output suppressed).
     import contextlib, io
     with contextlib.redirect_stdout(io.StringIO()):
