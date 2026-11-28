@@ -20,7 +20,7 @@ jobs:
   pinned-uses:
     permissions:
       contents: read
-    uses: krateo-blueprints/charts/.github/workflows/pinned-uses.yaml@db05838e80afecd49ec1fded8daac207bf780ec1 # 1.11.0
+    uses: krateo-blueprints/charts/.github/workflows/pinned-uses.yaml@5825f8963e30193120c0460f6c6f31b596bf1ed8 # 1.13.2
 
   lint-docs:
     uses: krateo-platformops/.github/.github/workflows/lint-docs.yaml@e1d3e99215e80ae56eca4a67e9e061b2c73168b8 # 1.0.0
