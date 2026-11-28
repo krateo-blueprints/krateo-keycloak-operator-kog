@@ -350,7 +350,7 @@ jobs:
   publish-index:
     needs: release
     # Pinned by full commit SHA (PUBLISHING.md rule 9); Dependabot proposes upgrades.
-    uses: krateo-blueprints/charts/.github/workflows/publish-chart.yaml@db05838e80afecd49ec1fded8daac207bf780ec1 # 1.11.0
+    uses: krateo-blueprints/charts/.github/workflows/publish-chart.yaml@5825f8963e30193120c0460f6c6f31b596bf1ed8 # 1.13.2
     with:
       source_repo: ${{ github.repository }}
       git_tag: ${{ github.ref_name }}
